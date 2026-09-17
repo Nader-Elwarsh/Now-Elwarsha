@@ -127,7 +127,7 @@ function renderTreasury(){
       <div class="hint">هذه الأرقام للعرض والمراجعة فقط. لا تُضاف ولا تُخصم من درج الخزنة.</div>
     </details>
     <h3 class="treasury-list-title">📋 كشف درج الخزنة</h3>
-    ${list.length?list.map(x=>`<div class="treasury-row ${x.type}">
+    ${list.length?list.map(x=>`<div class="treasury-row ${x.type}" id="tx-${x.id}">
       <div class="treasury-row-main">
         <b>${esc(x.reason||"—")}</b>
         <small>${esc(new Date((x.date||today)+"T"+(x.time||"00:00")).toLocaleString("ar-EG"))} • ${esc(x.category||"أخرى")}${x.counterparty?` • 👤 ${esc(x.counterparty)}`:""}${x.place?` • 📍 ${esc(x.place)}`:""}</small>

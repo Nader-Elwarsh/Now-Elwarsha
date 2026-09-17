@@ -49,6 +49,16 @@
     const totalOut = moves.filter(m => isOutType(m.type)).reduce((a, m) => a + (+m.qty || 0), 0);
     const totalIn = moves.filter(m => isInType(m.type)).reduce((a, m) => a + (+m.qty || 0), 0);
 
+    // لو رابط دخل الصفحة يشاور على حركة معيّنة (زي فحص سلامة البيانات
+    // #move-<id>) بس هي أقدم من أول 20 حركة، نوسّع الحد اللي بيتعرض عشان
+    // الحركة المطلوبة تبقى ضمن الصفوف المرسومة فعليًا وتقدر highlightHashTarget
+    // (shared-data.js) توصل لها وتضيئها.
+    const hashMoveId = (location.hash || "").startsWith("#move-") ? location.hash.slice(6) : null;
+    if (hashMoveId) {
+      const idx = moves.findIndex(m => m.id === hashMoveId);
+      if (idx >= 0 && idx >= state.limit) state.limit = idx + 1;
+    }
+
     const visible = moves.slice(0, state.limit);
 
     el.innerHTML = `
@@ -82,7 +92,7 @@
           <tr><th>التاريخ</th><th>النوع</th><th>الكمية</th><th>الأمر المرتبط</th><th>الفاتورة</th></tr>
           ${visible.map(m => {
             const req = m.requestId ? arr(K.r).find(r => r.id === m.requestId) : null;
-            return `<tr>
+            return `<tr id="move-${m.id}">
               <td>${new Date(m.at).toLocaleString("ar-EG")}</td>
               <td>${esc(m.type || "—")}</td>
               <td>${+m.qty || 0}</td>

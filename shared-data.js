@@ -289,3 +289,32 @@
   window.CURRENT_SCHEMA_VERSION = CURRENT_SCHEMA_VERSION;
   window.withRollback = withRollback;
 })(window);
+
+/* ---------------------------------------------------------------------
+   دعم الروابط اللي بتوجّه لسجل معيّن جوه صفحة (زي فحص سلامة البيانات في
+   الإعدادات، اللي بقى بيودّي لسجل الحركة/الحساب نفسه مش لقسمه العام بس):
+   أي رابط بينتهي بـ #tx-<id> أو #move-<id> بيعمل سكرول للسجل ده ويضيّئه
+   لحظيًا. مؤجَّل ومعاد المحاولة عدة مرات عشان نمهّل رندر الصفحة (اللي ممكن
+   يحصل بعد await migrations، أو في صفحة "حركات الصنف" اللي فيها تحميل
+   تدريجي) قبل ما نبحث عن العنصر.
+   --------------------------------------------------------------------- */
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  (function () {
+    function highlightHashTarget(attempt) {
+      attempt = attempt || 0;
+      var hash = ((typeof location !== "undefined" && location.hash) || "").slice(1);
+      if (!hash || (hash.indexOf("tx-") !== 0 && hash.indexOf("move-") !== 0)) return;
+      var el = document.getElementById(hash);
+      if (!el) {
+        if (attempt < 12) setTimeout(function () { highlightHashTarget(attempt + 1); }, 150);
+        return;
+      }
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("integrity-highlight");
+      setTimeout(function () { el.classList.remove("integrity-highlight"); }, 3000);
+    }
+    document.addEventListener("DOMContentLoaded", function () {
+      setTimeout(function () { highlightHashTarget(0); }, 200);
+    });
+  })();
+}

@@ -94,7 +94,13 @@ function contactLinksHtml(phone){
   // بروتوكول غير http/https لتطبيق الاتصال بنفسها؛ فتحه كـ"نافذة/تبويب
   // جديد" بيخلي المتصفح يسلّمه لنظام أندرويد بشكل صحيح، وده اللي بيخلي
   // رابط الواتساب (اللي أصلاً عنده target="_blank") شغال من غير مشاكل.
-  return `<a class="tel-link" href="tel:${esc(phone)}" target="_blank" rel="noopener">📲 ${esc(phone)}</a>${wa?` <a class="wa-link" href="https://wa.me/${wa}" target="_blank" rel="noopener">💬 واتساب</a>`:""}`;
+  // event.stopPropagation() ضروري هنا كمان: الرقم ده بيتعرض جوه كروت قابلة
+  // للضغط بالكامل (زي كارت "الدور عليك دلوقتي" في خط السير) اللي عندها
+  // onclick بيفتح صفحة الأمر. من غير stopPropagation، الضغط على الرقم كان
+  // بيفتح تبويب اتصال/واتساب جديد وفي نفس الوقت يودّي التبويب الحالي لصفحة
+  // الأمر (لأن الضغطة بتتصعّد لكارت الأب)، فيبقى عندك تنقل مش متوقع. دلوقتي
+  // الضغط على الرقم بيعمل الاتصال/واتساب بس، من غير ما يفتح صفحة الأمر.
+  return `<a class="tel-link" href="tel:${esc(phone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📲 ${esc(phone)}</a>${wa?` <a class="wa-link" href="https://wa.me/${wa}" target="_blank" rel="noopener" onclick="event.stopPropagation()">💬 واتساب</a>`:""}`;
 }
 
 document.addEventListener("DOMContentLoaded",async()=>{

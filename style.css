@@ -70,6 +70,10 @@
 .quick-add{background:#eef6ff;border:1px dashed #9fc4e8;border-radius:10px;padding:12px;margin:2px 0 10px;animation:quickAddIn .15s ease-out}
 .quick-add h3{margin:0 0 8px;font-size:14px;color:var(--accent-text)}
 @keyframes quickAddIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+/* تظليل مؤقت للسجل اللي بيتفتح من رابط مباشر (زي فحص سلامة البيانات) عشان
+   واضح إنه هو السجل المقصود بالظبط. */
+.integrity-highlight{animation:integrityFlash 3s ease-out 1}
+@keyframes integrityFlash{0%{box-shadow:0 0 0 3px var(--accent,#3b82f6);background:var(--accent-soft,rgba(59,130,246,.18))}100%{box-shadow:0 0 0 0 transparent}}
 .select-add{display:grid;grid-template-columns:1fr auto;gap:6px}
 .quick-add-btn.quick-add-open{background:#fde2e2;color:#a11}
 .report-range{margin-bottom:6px}

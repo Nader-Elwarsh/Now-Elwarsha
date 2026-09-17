@@ -326,7 +326,7 @@ function renderWalletDetail(){
       <select id="wdFilterCategory" onchange="renderWalletDetail()"><option value="">كل التصنيفات</option>${categories.map(c=>`<option ${c===filterCategory?"selected":""}>${esc(c)}</option>`).join("")}</select>
     </div>
     <h3 class="treasury-list-title">📋 كشف حركات ${isWallet?"المحفظة":"التصنيف"}</h3>
-    ${entries.length?entries.map(x=>`<div class="treasury-row ${x.type}">
+    ${entries.length?entries.map(x=>`<div class="treasury-row ${x.type}" id="tx-${x.id}">
       <div class="treasury-row-main">
         <b>${esc(x.reason||"—")}</b>
         <small>${esc(new Date((x.date||today)+"T"+(x.time||"00:00")).toLocaleString("ar-EG"))}${!isWallet?` • 💳 ${esc(x.wallet||"—")}`:""} • 🏷️ ${esc(x.category||"أخرى")}${x.subCategory?` • 📂 ${esc(x.subCategory)}`:""}${x.source==="order-link"?" • 🔗 أمر شغل":""}${x.source==="transfer"?" • 🔁 تحويل":""}${x.source==="migrated-expense"?" • ↩️ مرحّل من كشف الحساب القديم":""}</small>

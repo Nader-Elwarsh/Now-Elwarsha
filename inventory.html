@@ -4,7 +4,7 @@
 <h3>🧾 فواتير المخزن</h3>
 <div class="hint">صوّر فاتورة التوريد وارجع اربطها بصنف أو أكتر — تقدر تلاقيها بعدين من صفحة الصنف نفسه من غير ما تدور في كل الفواتير.</div>
 <div id="invoiceForm" class="form-grid">
-<label class="wide">📷 صورة الفاتورة<input id="invPhoto" type="file" accept="image/*" capture="environment"></label>
+<label class="wide">📷 صورة الفاتورة<input id="invPhoto" type="file" accept="image/*"></label>
 <label class="wide">ملاحظة <small>اختياري، مثلًا اسم المورد أو التاريخ</small><input id="invNote"></label>
 <label class="wide">ربط بالأصناف <small>اختياري، تقدر تحددها بعدين لو مش متأكد دلوقتي</small>
 <input type="text" id="invPartFilter" placeholder="🔍 دوّر على اسم الصنف عشان تفلتر القائمة..." autocomplete="off" oninput="filterInvoicePartOptions()">
@@ -23,7 +23,7 @@
 <label>الكمية الواردة<input id="stkQty" type="number" min="1" value="1"></label>
 <label>سعر الشراء الجديد <small>اختياري لو اتغير</small><input id="stkBuy" type="number" min="0" step=".01"></label>
 <label class="wide">ملاحظة <small>اختياري، مثلًا اسم المورد</small><input id="stkNote"></label>
-<label class="wide">📷 صورة فاتورة التوريد <small>اختياري، للرجوع إليها لاحقًا</small><input id="stkInvoice" type="file" accept="image/*" capture="environment"></label>
+<label class="wide">📷 صورة فاتورة التوريد <small>اختياري، للرجوع إليها لاحقًا</small><input id="stkInvoice" type="file" accept="image/*"></label>
 </div>
 <div id="stkCurrentHint" class="hint">اكتب اسم القطعة أو الكود، أو اسم صنف جديد عشان تضيفه.</div>
 <div class="actions"><button type="button" class="primary" onclick="saveRestock()">💾 تسجيل التوريد</button><button type="button" class="secondary" onclick="toggleRestockBox()">إلغاء</button></div>

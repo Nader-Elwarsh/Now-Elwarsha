@@ -78,29 +78,63 @@ function dataIntegrityReport(){
   const push=(o)=>{if(!issues.some(x=>x.key===o.key))issues.push(o)};
   for(const [key,label] of collections){for(const rec of arr(key)){if(!rec||typeof rec!=="object"){push({key:`bad:${key}:${Math.random()}`,message:`${label}: سجل غير صالح.`,link:null,fix:null});continue}if(rec.id){const token=key+":"+rec.id;if(seen.has(token))push({key:`dup:${token}`,message:`${label}: رقم مكرر ${rec.id}.`,link:null,fix:null});seen.add(token)}}}
   const customers=new Set(arr(K.c).map(x=>x?.id).filter(Boolean)),devices=new Set(arr(K.d).map(x=>x?.id).filter(Boolean)),parts=new Set(arr(K.p).map(x=>x?.id).filter(Boolean));
-  arr(K.d).forEach(x=>{if(x?.customerId&&!customers.has(x.customerId))push({key:`dev-cust:${x.id}`,message:`الجهاز ${deviceName ? (x.type||"")+" — "+(x.brand||"") : x.id}: مرتبط بعميل غير موجود.`,link:`device.html?id=${x.id}`,linkLabel:"فتح الجهاز",fix:{type:"unlinkDeviceCustomer",args:{deviceId:x.id},detail:"هيمسح ربط الجهاز بالعميل غير الموجود بس (تصبح خانة العميل فاضية)، من غير ما يمسح الجهاز نفسه. تقدر تربطه بعميل صحيح بعد كده من صفحة الجهاز."}})});
+  arr(K.d).forEach(x=>{if(x?.customerId&&!customers.has(x.customerId))push({key:`dev-cust:${x.id}`,message:`الجهاز ${deviceName ? (x.type||"")+" — "+(x.brand||"") : x.id}: مرتبط بعميل غير موجود (رقم العميل المحفوظ: ${x.customerId}). المفروض تكون خانة العميل فاضية أو مربوطة بعميل موجود فعليًا.`,link:`device.html?id=${x.id}`,linkLabel:"فتح الجهاز نفسه",fix:{type:"unlinkDeviceCustomer",args:{deviceId:x.id},detail:"هيمسح ربط الجهاز بالعميل غير الموجود بس (تصبح خانة العميل فاضية)، من غير ما يمسح الجهاز نفسه. تقدر تربطه بعميل صحيح بعد كده من صفحة الجهاز."}})});
   const requestIds=new Set(arr(K.r).map(x=>x?.id).filter(Boolean));
   arr(K.r).forEach(r=>{
     const label=r.no||r.id||"بدون رقم",link=`request.html?id=${r.id}`,partsList=Array.isArray(r.parts)?r.parts:[];
-    if(r?.customerId&&!customers.has(r.customerId))push({key:`req-cust:${r.id}`,message:`الأمر ${label}: العميل المرتبط بيه غير موجود.`,link,linkLabel:"فتح الأمر",fix:null});
-    if(r?.deviceId&&!devices.has(r.deviceId))push({key:`req-dev:${r.id}`,message:`الأمر ${label}: الجهاز المرتبط بيه غير موجود.`,link,linkLabel:"فتح الأمر",fix:null});
+    if(r?.customerId&&!customers.has(r.customerId))push({key:`req-cust:${r.id}`,message:`الأمر ${label}: العميل المرتبط بيه (رقم ${r.customerId}) غير موجود. المفروض يكون مربوط بعميل فعلي أو تشيل الربط من الأمر نفسه.`,link,linkLabel:"فتح الأمر نفسه",fix:null});
+    if(r?.deviceId&&!devices.has(r.deviceId))push({key:`req-dev:${r.id}`,message:`الأمر ${label}: الجهاز المرتبط بيه (رقم ${r.deviceId}) غير موجود. المفروض يكون مربوط بجهاز فعلي أو تشيل الربط من الأمر نفسه.`,link,linkLabel:"فتح الأمر نفسه",fix:null});
     partsList.forEach((x,idx)=>{
-      if(!x.external&&x.partId&&!parts.has(x.partId))push({key:`req-part:${r.id}:${idx}`,message:`الأمر ${label}: فيه قطعة غيار في القائمة اتمسحت من المخزن.`,link,linkLabel:"فتح الأمر",fix:{type:"removeOrderPartLine",args:{requestId:r.id,index:idx},detail:"هيشيل سطر القطعة دي بس من قائمة قطع الأمر (لإنها اتمسحت من المخزن)، ويعيد حساب إجمالي قطع الغيار والإجمالي الكلي للأمر على أساس باقي القطع. باقي بيانات الأمر مش هتتغير."}});
-      else if(!Number.isFinite(+x.qty)||+x.qty<=0)push({key:`req-qty:${r.id}:${idx}`,message:`الأمر ${label}: فيه سطر قطعة بكمية غير صالحة.`,link,linkLabel:"فتح الأمر",fix:{type:"removeOrderPartLine",args:{requestId:r.id,index:idx},detail:"هيشيل سطر القطعة اللي كميته غير صالحة بس من قائمة قطع الأمر، ويعيد حساب إجمالي قطع الغيار والإجمالي الكلي على أساس باقي القطع."}});
+      if(!x.external&&x.partId&&!parts.has(x.partId))push({key:`req-part:${r.id}:${idx}`,message:`الأمر ${label}: سطر قطعة رقم ${idx+1} في قائمة قطع الأمر (كمية ${x.qty}) بيشاور على قطعة اتمسحت من المخزن (رقم ${x.partId}). المفروض السطر ده يتشال لإن القطعة مش موجودة أصلًا.`,link,linkLabel:"فتح الأمر نفسه",fix:{type:"removeOrderPartLine",args:{requestId:r.id,index:idx},detail:"هيشيل سطر القطعة دي بس من قائمة قطع الأمر (لإنها اتمسحت من المخزن)، ويعيد حساب إجمالي قطع الغيار والإجمالي الكلي للأمر على أساس باقي القطع. باقي بيانات الأمر مش هتتغير."}});
+      else if(!Number.isFinite(+x.qty)||+x.qty<=0)push({key:`req-qty:${r.id}:${idx}`,message:`الأمر ${label}: سطر قطعة رقم ${idx+1} في قائمة قطع الأمر عنده كمية غير صالحة (${x.qty}). المفروض تكون رقم أكبر من صفر.`,link,linkLabel:"فتح الأمر نفسه",fix:{type:"removeOrderPartLine",args:{requestId:r.id,index:idx},detail:"هيشيل سطر القطعة اللي كميته غير صالحة بس من قائمة قطع الأمر، ويعيد حساب إجمالي قطع الغيار والإجمالي الكلي على أساس باقي القطع."}});
     });
     const freshParts=(Array.isArray(r.parts)?r.parts:[]).filter((x,idx)=>!((!x.external&&x.partId&&!parts.has(x.partId))||!Number.isFinite(+x.qty)||+x.qty<=0));
     const partsTotal=freshParts.reduce((n,x)=>n+(+x.qty||0)*(+x.sell||0),0),partsCost=freshParts.reduce((n,x)=>n+(+x.qty||0)*(+x.cost||0),0),expectedTotal=(+r.labor||0)+partsTotal;
     const totalsMismatch=Math.abs((+r.partsTotal||0)-partsTotal)>.01||Math.abs((+r.partsCost||0)-partsCost)>.01||Math.abs((+r.total||0)-expectedTotal)>.01;
-    if(totalsMismatch)push({key:`req-totals:${r.id}`,message:`الأمر ${label}: إجمالي قطع الغيار أو الإجمالي الكلي مش متطابق مع تفاصيل القطع.`,link,linkLabel:"فتح الأمر",fix:{type:"recomputeOrderTotals",args:{requestId:r.id},detail:`هيعيد حساب إجمالي قطع الغيار (${partsTotal.toFixed(2)} ج) والإجمالي الكلي (${expectedTotal.toFixed(2)} ج) بناءً على القطع الفعلية في الأمر، من غير ما يغيّر أي حاجة تانية.`}});
-    if(!Number.isFinite(+r.deposit)||+r.deposit<0||+r.deposit>expectedTotal+.01)push({key:`req-deposit:${r.id}`,message:`الأمر ${label}: قيمة العربون غير منطقية مقارنة بالإجمالي.`,link,linkLabel:"فتح الأمر",fix:{type:"clampOrderDeposit",args:{requestId:r.id},detail:`هيظبط العربون ليكون رقم منطقي (بين صفر و${expectedTotal.toFixed(2)} ج) من غير ما يغيّر أي حاجة تانية في الأمر.`}});
+    if(totalsMismatch)push({key:`req-totals:${r.id}`,message:`الأمر ${label}: الإجمالي المسجّل حاليًا ${(+r.total||0).toFixed(2)} ج (وإجمالي قطع الغيار ${(+r.partsTotal||0).toFixed(2)} ج)، والمفروض يكونوا ${expectedTotal.toFixed(2)} ج و${partsTotal.toFixed(2)} ج على التوالي بناءً على تفاصيل القطع الفعلية في الأمر.`,link,linkLabel:"فتح الأمر نفسه",fix:{type:"recomputeOrderTotals",args:{requestId:r.id},detail:`هيعيد حساب إجمالي قطع الغيار (${partsTotal.toFixed(2)} ج) والإجمالي الكلي (${expectedTotal.toFixed(2)} ج) بناءً على القطع الفعلية في الأمر، من غير ما يغيّر أي حاجة تانية.`}});
+    if(!Number.isFinite(+r.deposit)||+r.deposit<0||+r.deposit>expectedTotal+.01)push({key:`req-deposit:${r.id}`,message:`الأمر ${label}: العربون المسجّل حاليًا ${r.deposit} غير منطقي. المفروض يكون رقم بين 0 و${expectedTotal.toFixed(2)} ج (إجمالي الأمر).`,link,linkLabel:"فتح الأمر نفسه",fix:{type:"clampOrderDeposit",args:{requestId:r.id},detail:`هيظبط العربون ليكون رقم منطقي (بين صفر و${expectedTotal.toFixed(2)} ج) من غير ما يغيّر أي حاجة تانية في الأمر.`}});
   });
-  arr(K.p).forEach(p=>{if(!Number.isFinite(+p.qty)||+p.qty<0)push({key:`part-qty:${p.id}`,message:`قطعة ${p.name||p.id||"بدون اسم"}: الكمية في المخزن غير صالحة.`,link:`part.html?id=${p.id}`,linkLabel:"فتح القطعة",fix:{type:"zeroPartQty",args:{partId:p.id},detail:"هيظبط كمية القطعة دي في المخزن على صفر بس، من غير ما يغيّر سعرها أو أي بيانات تانية."}})});
-  arr(K.m).forEach(m=>{if(!m?.partId||!parts.has(m.partId))push({key:`move-part:${m.id}`,message:`حركة مخزن قديمة: القطعة المرتبطة بيها اتمسحت.`,link:"part-moves.html",linkLabel:"فتح حركات المخزن",fix:null});if(!Number.isFinite(+m.qty)||+m.qty<=0)push({key:`move-qty:${m.id}`,message:"حركة مخزن قديمة: الكمية المسجلة غير صالحة.",link:"part-moves.html",linkLabel:"فتح حركات المخزن",fix:null});if(m.requestId&&!requestIds.has(m.requestId))push({key:`move-req:${m.id}`,message:"حركة مخزن قديمة: أمر الشغل المرتبط بيها اتمسح.",link:"part-moves.html",linkLabel:"فتح حركات المخزن",fix:null})});
+  arr(K.p).forEach(p=>{if(!Number.isFinite(+p.qty)||+p.qty<0)push({key:`part-qty:${p.id}`,message:`قطعة ${p.name||p.id||"بدون اسم"}: الكمية المسجّلة في المخزن حاليًا (${p.qty}) غير صالحة. المفروض تكون رقم صفر أو أكبر.`,link:`part.html?id=${p.id}`,linkLabel:"فتح القطعة نفسها",fix:{type:"zeroPartQty",args:{partId:p.id},detail:"هيظبط كمية القطعة دي في المخزن على صفر بس، من غير ما يغيّر سعرها أو أي بيانات تانية."}})});
+  // حركات المخزن: لو القطعة لسه موجودة، الرابط بيودّي لصفحة حركات الصنف نفسها
+  // مع #move-<id> يفتح ويظلّل الحركة بعينها (شوف shared-data.js وapp-part-moves.js).
+  // لو القطعة اتمسحت خالص مفيش صفحة تفصيلية تتفتح للحركة، فبنوضّح كل التفاصيل
+  // في الرسالة نفسها بدل الرابط.
+  arr(K.m).forEach(m=>{
+    const partOk=!!(m?.partId&&parts.has(m.partId));
+    const moveLink=partOk?`part-moves.html?id=${m.partId}#move-${m.id}`:null;
+    const whenText=m.at?new Date(m.at).toLocaleString("ar-EG"):"تاريخ غير معروف";
+    if(!partOk)push({key:`move-part:${m.id}`,message:`حركة مخزن (${m.type||"بدون نوع"} — كمية ${m.qty} — ${whenText}): القطعة المرتبطة بيها (رقم ${m.partId||"غير معروف"}) اتمسحت من المخزن، فمفيش صفحة تفصيلية تقدر تفتحها للحركة دي تحديدًا.`,link:null,linkLabel:null,fix:null});
+    if(!Number.isFinite(+m.qty)||+m.qty<=0)push({key:`move-qty:${m.id}`,message:`حركة مخزن (${m.type||"بدون نوع"} — ${whenText}): الكمية المسجلة (${m.qty}) غير صالحة. المفروض تكون رقم أكبر من صفر.`,link:moveLink,linkLabel:moveLink?"فتح الحركة نفسها":null,fix:null});
+    if(m.requestId&&!requestIds.has(m.requestId))push({key:`move-req:${m.id}`,message:`حركة مخزن (${m.type||"بدون نوع"} — كمية ${m.qty} — ${whenText}): أمر الشغل المرتبط بيها (رقم ${m.requestId}) اتمسح.`,link:moveLink,linkLabel:moveLink?"فتح الحركة نفسها":null,fix:null});
+  });
+  // حركات الحسابات/الخزنة: الرابط بيودّي لصفحة المحفظة/الخزنة نفسها مع
+  // #tx-<id> يفتح ويظلّل الحركة بعينها (شوف wallets.js وtreasury.js).
   const activeWallet=arr(K.wtx).filter(x=>!x.deleted),activeTreasury=arr(K.tr).filter(x=>!x.deleted),refSeen=new Set();
-  activeWallet.forEach(x=>{if(!Number.isFinite(+x.amount)||+x.amount<=0)push({key:`wtx-amt:${x.id}`,message:"حركة حساب: مبلغ غير صالح.",link:"wallets.html",linkLabel:"فتح الحسابات",fix:null});if(x.type!=="in"&&x.type!=="out")push({key:`wtx-type:${x.id}`,message:"حركة حساب: نوع الحركة غير صالح.",link:"wallets.html",linkLabel:"فتح الحسابات",fix:null});if(x.refKey){if(refSeen.has(x.refKey))push({key:`wtx-refdup:${x.refKey}`,message:`حركات الحسابات: رابط مكرر ${x.refKey}.`,link:"wallets.html",linkLabel:"فتح الحسابات",fix:null});refSeen.add(x.refKey);const orderId=String(x.refKey).replace(/^order-(?:deposit|final)-/,"");if(/^order-(?:deposit|final)-/.test(x.refKey)&&!requestIds.has(orderId))push({key:`wtx-reforder:${x.id}`,message:"حركة حساب: مرتبطة بأمر شغل غير موجود.",link:"wallets.html",linkLabel:"فتح الحسابات",fix:null})}});
-  activeTreasury.forEach(x=>{if(!Number.isFinite(+x.amount)||+x.amount<=0)push({key:`tr-amt:${x.id}`,message:"حركة خزنة: مبلغ غير صالح.",link:"treasury.html",linkLabel:"فتح الخزنة",fix:null});if(x.type!=="in"&&x.type!=="out")push({key:`tr-type:${x.id}`,message:"حركة خزنة: نوع الحركة غير صالح.",link:"treasury.html",linkLabel:"فتح الخزنة",fix:null})});
+  activeWallet.forEach(x=>{
+    const wLink=x.wallet?`wallet.html?type=wallet&name=${encodeURIComponent(x.wallet)}#tx-${x.id}`:"wallets.html";
+    const wLabel=x.wallet?"فتح الحركة نفسها":"فتح الحسابات";
+    const desc=`"${x.reason||"بدون سبب"}"${x.wallet?` في محفظة ${x.wallet}`:""}`;
+    if(!Number.isFinite(+x.amount)||+x.amount<=0)push({key:`wtx-amt:${x.id}`,message:`حركة حساب ${desc}: المبلغ المسجل (${x.amount}) غير صالح. المفروض يكون رقم أكبر من صفر.`,link:wLink,linkLabel:wLabel,fix:null});
+    if(x.type!=="in"&&x.type!=="out")push({key:`wtx-type:${x.id}`,message:`حركة حساب ${desc}: نوع الحركة (${x.type}) غير صالح. المفروض يكون "وارد" أو "صرف".`,link:wLink,linkLabel:wLabel,fix:null});
+    if(x.refKey){
+      if(refSeen.has(x.refKey))push({key:`wtx-refdup:${x.refKey}`,message:`حركات الحسابات: رابط مكرر ${x.refKey} على أكتر من حركة.`,link:wLink,linkLabel:wLabel,fix:null});
+      refSeen.add(x.refKey);
+      const orderId=String(x.refKey).replace(/^order-(?:deposit|final)-/,"");
+      if(/^order-(?:deposit|final)-/.test(x.refKey)&&!requestIds.has(orderId))push({key:`wtx-reforder:${x.id}`,message:`حركة حساب ${desc}: مرتبطة بأمر شغل (رقم ${orderId}) غير موجود.`,link:wLink,linkLabel:wLabel,fix:null});
+    }
+  });
+  activeTreasury.forEach(x=>{
+    const tLink=`treasury.html#tx-${x.id}`,desc=`"${x.reason||"بدون سبب"}"`;
+    if(!Number.isFinite(+x.amount)||+x.amount<=0)push({key:`tr-amt:${x.id}`,message:`حركة خزنة ${desc}: المبلغ المسجل (${x.amount}) غير صالح. المفروض يكون رقم أكبر من صفر.`,link:tLink,linkLabel:"فتح الحركة نفسها",fix:null});
+    if(x.type!=="in"&&x.type!=="out")push({key:`tr-type:${x.id}`,message:`حركة خزنة ${desc}: نوع الحركة (${x.type}) غير صالح. المفروض يكون "وارد" أو "صرف".`,link:tLink,linkLabel:"فتح الحركة نفسها",fix:null});
+  });
   const transferIds=new Set([...activeWallet,...activeTreasury].map(x=>x.transferId).filter(Boolean));
-  transferIds.forEach(id=>{const w=activeWallet.filter(x=>x.transferId===id),t=activeTreasury.filter(x=>x.transferId===id);if(w.length!==1||t.length!==1)push({key:`transfer-parts:${id}`,message:`التحويل ${id}: لا يحتوي طرفًا واحدًا صحيحًا في الحساب والخزنة.`,link:"treasury.html",linkLabel:"فتح الخزنة",fix:null});else if(+w[0].amount!==+t[0].amount)push({key:`transfer-amt:${id}`,message:`التحويل ${id}: المبلغ مختلف بين طرفَي التحويل.`,link:"treasury.html",linkLabel:"فتح الخزنة",fix:null})});
+  transferIds.forEach(tid=>{
+    const w=activeWallet.filter(x=>x.transferId===tid),t=activeTreasury.filter(x=>x.transferId===tid);
+    const anchor=t[0]?{link:`treasury.html#tx-${t[0].id}`,label:"فتح طرف الخزنة"}:(w[0]&&w[0].wallet?{link:`wallet.html?type=wallet&name=${encodeURIComponent(w[0].wallet)}#tx-${w[0].id}`,label:"فتح طرف المحفظة"}:{link:"treasury.html",label:"فتح الخزنة"});
+    if(w.length!==1||t.length!==1)push({key:`transfer-parts:${tid}`,message:`التحويل ${tid}: عدد أطرافه غير صحيح (${w.length} في المحفظة، ${t.length} في الخزنة). المفروض طرف واحد بالظبط في كل جانب.`,link:anchor.link,linkLabel:anchor.label,fix:null});
+    else if(+w[0].amount!==+t[0].amount)push({key:`transfer-amt:${tid}`,message:`التحويل ${tid}: المبلغ مختلف بين طرفَي التحويل (${(+w[0].amount).toFixed(2)} ج في المحفظة مقابل ${(+t[0].amount).toFixed(2)} ج في الخزنة). المفروض يكونوا نفس المبلغ في الطرفين.`,link:anchor.link,linkLabel:anchor.label,fix:null});
+  });
   return {issues,counts:{customers:arr(K.c).length,devices:arr(K.d).length,requests:arr(K.r).length,parts:arr(K.p).length,moves:arr(K.m).length,wallets:activeWallet.length,treasury:activeTreasury.length}};
 }
 function runDataIntegrityCheck(){
