@@ -139,15 +139,18 @@ button,input,select,textarea{font-size:inherit}
 .record-card.age-b0,.simple-record.age-b0,.route-order-card.age-b0,.route-completed-row.age-b0{border-top-color:#3ba35c}
 .record-card.age-b1,.simple-record.age-b1,.route-order-card.age-b1,.route-completed-row.age-b1{border-top-color:#e0b029}
 .record-card.age-b2,.simple-record.age-b2,.route-order-card.age-b2,.route-completed-row.age-b2{border-top-color:#c0392b}
+.record-card.age-frozen,.simple-record.age-frozen,.route-order-card.age-frozen,.route-completed-row.age-frozen{border-top-color:#4d9fff}
 .age-badge{font-weight:bold;padding:2px 8px;border-radius:20px;display:inline-block}
 .age-badge.age-b0{background:#3ba35c26;color:#1e6b3a}
 .age-badge.age-b1{background:#e0b02926;color:#8a6116}
 .age-badge.age-b2{background:#c0392b26;color:#8f1d2c}
+.age-badge.age-frozen{background:#4d9fff26;color:#1a5fa8}
 .age-legend{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;font-size:11px}
 .age-legend-item{border-radius:20px;padding:3px 9px;background:var(--bg-sunken);color:var(--text-muted)}
 [data-theme="dark"] .age-badge.age-b0{background:#3ba35c40;color:#7be3a0}
 [data-theme="dark"] .age-badge.age-b1{background:#e0b02940;color:#f3d488}
 [data-theme="dark"] .age-badge.age-b2{background:#c0392b40;color:#ff9d94}
+[data-theme="dark"] .age-badge.age-frozen{background:#4d9fff40;color:#a9d3ff}
 @media(max-width:650px){.age-legend{font-size:10px;gap:5px}.age-legend-item{padding:2px 7px}}
 /* V11.57: لون ثابت لكل تصنيف قطع غيار في المخزن (غسالات/تلاجات/تكييفات...) */
 .cat-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:4px;vertical-align:middle}
@@ -269,7 +272,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .rp-order-link:active{opacity:.7}
 @media(max-width:650px){.rp-wrap{padding:12px 14px 16px}}
 .route-theme-opt{opacity:.75}
-.route-theme-opt.active-opt{background:#17324d;color:#fff;border-color:#17324d;opacity:1}
+.mini-action.active-opt{background:var(--accent-text);color:#fff;border-color:var(--accent-text);opacity:1}
 .simple-list-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 8px}
 .simple-list-head>div{display:grid;gap:2px}
 .simple-list-head small{font-size:11px;color:var(--text-muted)}
@@ -601,3 +604,9 @@ input,select,textarea{min-height:40px;box-sizing:border-box}
 /* Duplicate review panel: readable comparison without destructive actions */
 .comp-duplicate-group{margin:8px 0;background:var(--bg-sunken);border:1px solid var(--border);border-radius:9px;padding:8px}.comp-duplicate-group summary{cursor:pointer;font-size:13px}.comp-duplicate-rows{display:grid;gap:7px;margin-top:8px}.comp-duplicate-rows .item{margin:0}.comp-duplicate-rows small{display:block;word-break:break-word;color:var(--text-muted);margin-top:5px}
 @media(max-width:650px){.comp-duplicate-group{padding:7px}.comp-duplicate-group summary{font-size:12px}.comp-duplicate-rows small{font-size:11px}}
+
+/* عارض صورة عام (فواتير التوريد، وأي صورة تانية محتاجة تكبير) */
+.img-preview-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px}
+.img-preview-box{background:var(--bg-elevated);border-radius:12px;padding:10px;max-width:min(92vw,720px);max-height:92vh;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-card-strong)}
+.img-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--text)}
+.img-preview-box img{max-width:100%;max-height:78vh;border-radius:8px;object-fit:contain}

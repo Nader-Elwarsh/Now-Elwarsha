@@ -154,7 +154,8 @@
     return !!r.visit &&
       dateKey(r.visit) < todayKey() &&
       !orderIsCompleted(r) &&
-      r.status !== "ملغي";
+      r.status !== "ملغي" &&
+      r.status !== "مجمد";
   }
 
   function simpleButton(label, icon, action, cls="") {
@@ -351,6 +352,7 @@
         const age = worstRequestAgeInfo(ao);
         return `<div class="simple-record${age ? " " + age.cls : ""}"><div class="simple-record-icon">👤</div><div class="simple-record-main">
           <a href="customer.html?id=${c.id}"><b>${esc2(c.name)}</b></a><span>📞 ${esc2(c.phone || "—")}</span>
+          <small>📍 ${esc2(addressText(c.mainAddress || {}) || "بدون عنوان")}</small>
           <small>🔧 ${ds} أجهزة • 🛠️ ${rs} أوامر${ao.length ? ` • 🔴 ${ao.length} فعال` : ""}${hw ? " • 🏭 جهاز في الورشة" : ""}</small>
           <small>${lastDate ? `📅 آخر تعامل: ${lastDate.toLocaleDateString("ar-EG",{day:"2-digit",month:"2-digit",year:"2-digit"})}` : "📅 بدون تعامل سابق"}${remain > 0 ? ` • 💰 متبقي ${remain.toFixed(2)} ج` : ""}${age ? ` • <span class="age-badge ${age.cls}" title="⏱️ أقدم أمر مفتوح: ${esc2(age.range)}">${age.dot} ${esc2(age.label)}</span>` : ""}</small>
         </div><div class="simple-record-actions"><a class="secondary small-btn" href="customer.html?id=${c.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteCustomerRecord('${c.id}')">حذف</button></div></div>`;
@@ -440,7 +442,12 @@
       <option value="type" ${sortKey === "type" ? "selected" : ""}>النوع أبجديًا</option>
     </select>`;
     el.innerHTML = `<div class="simple-list-head"><b>${title}</b><div class="simple-list-head-actions">${sortSelectHtml}<button type="button" class="secondary small-btn" onclick="hideAllDevices()">رجوع للملخص</button></div></div>
-      ${filtered.length ? filtered.map(d => { const ao = activeOrdersForDevice(d.id); const age = worstRequestAgeInfo(ao); return `<div class="simple-record${age ? " " + age.cls : ""}"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${ao.length ? ` • 🔴 ${ao.length} أمر فعال` : ""}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}${age ? ` • <span class="age-badge ${age.cls}" title="⏱️ أقدم أمر مفتوح: ${esc2(age.range)}">${age.dot} ${esc2(age.label)}</span>` : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`; }).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
+      ${filtered.length ? filtered.map(d => {
+        const ao = activeOrdersForDevice(d.id); const age = worstRequestAgeInfo(ao);
+        const cust = arr(K.c).find(x => x.id === d.customerId) || {};
+        const latest = ao.length ? ao.slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0))[0] : null;
+        return `<div class="simple-record${age ? " " + age.cls : ""}"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${cust.phone ? ` • 📞 ${esc2(cust.phone)}` : ""}</small><small>${ao.length ? `🔴 ${ao.length} أمر فعال${latest ? ` (${esc2(latest.status)}${latest.fault ? ` — ${esc2(latest.fault)}` : ""})` : ""}` : "لا يوجد أمر فعال"}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}${age ? ` • <span class="age-badge ${age.cls}" title="⏱️ أقدم أمر مفتوح: ${esc2(age.range)}">${age.dot} ${esc2(age.label)}</span>` : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`;
+      }).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
   });
 
   /* ---------- المخزن ---------- */
@@ -727,6 +734,7 @@
       active: all.filter(r => r.status === "جاري التنفيذ").length,
       completed: all.filter(orderIsCompleted).length,
       cancelled: all.filter(r => r.status === "ملغي").length,
+      frozen: all.filter(r => r.status === "مجمد").length,
       workshop: all.filter(orderIsWorkshop).length,
       parts: all.filter(orderIsParts).length,
       overdue: all.filter(orderIsOverdue).length,
@@ -747,6 +755,7 @@
           ${countTile("المطلوب الآن","🎯",counts.open,"showRequestBucket('needed')","primary-tile")}
           ${countTile("الجديد","🆕",counts.newOrders,"showRequestByStatus('جديد')")}
           ${countTile("جاري التنفيذ","🔧",counts.active,"showRequestByStatus('جاري التنفيذ')")}
+          ${counts.frozen>0?countTile("مجمّد","❄️",counts.frozen,"showRequestByStatus('مجمد')"):""}
           ${countTile("متأخر","⚠️",counts.overdue,"showRequestBucket('overdue')")}
           ${countTile("الورشة","🏭",counts.workshop,"showRequestByLocation('workshop')","",avgWorkshop!==null?`⏱️ متوسط ${formatDuration(avgWorkshop)}`:"")}
           ${countTile("انتظار قطع","📦",counts.parts,"showRequestBucket('parts')")}
@@ -841,6 +850,8 @@
       ${filtered.length ? filtered.map(r => {
         const loc = locationForOrder(r);
         const status = r.closed ? "مغلق" : (r.status || "—");
+        const canEditStatus = !r.closed && !r.paid;
+        const cust = arr(K.c).find(x => x.id === r.customerId) || {};
         const ageInfo = requestAgeInfo(r);
         const age = ageInfo ? ageInfo.label : "";
         const totalMs=requestTotalCompletionMs(r);
@@ -849,8 +860,9 @@
           <div class="simple-record-icon">${r.closed ? "🔒" : "🛠️"}</div>
           <div class="simple-record-main">
             <a href="request.html?id=${r.id}"><b>${esc2(r.no || "أمر شغل")}</b></a>
-            <span>${esc2(customerName(r.customerId))} • ${esc2(deviceName(r.deviceId))}</span>
+            <span>${esc2(customerName(r.customerId))}${cust.phone ? ` • 📞 ${esc2(cust.phone)}` : ""} • ${esc2(deviceName(r.deviceId))}</span>
             <small>📍 ${esc2(loc.center)}${loc.village ? " • " + esc2(loc.village) : ""} • ${r.visit ? new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "بدون موعد"}${r.tag ? " • 🏷️ " + esc2(r.tag) : ""}</small>
+            ${r.fault ? `<small>📝 ${esc2(r.fault)}</small>` : ""}
             <div class="request-timing">
               ${ageInfo ? `<span class="request-age age-badge ${ageInfo.cls}" title="⏱️ عمر الأمر: ${esc2(ageInfo.range)}">${ageInfo.dot} عمر الأمر: ${esc2(age)}</span>` : ""}
               ${totalMs!==null ? `<span>⏱️ الإكمال: ${esc2(formatDuration(totalMs))}</span>` : ""}
@@ -858,7 +870,7 @@
             </div>
           </div>
           <div class="simple-record-side">
-            <span class="simple-status ${r.closed ? "closed" : ""}">${esc2(status)}</span>
+            ${canEditStatus ? `<select class="inline-status" onclick="event.stopPropagation()" onchange="changeRequestStatus('${r.id}',this.value)">${nextStatusOptions(r.status).map(x=>`<option ${r.status===x?"selected":""}>${esc2(x)}</option>`).join("")}</select>` : `<span class="simple-status ${r.closed ? "closed" : ""}">${esc2(status)}</span>`}
             ${canReturnRequest(r) ? `<button type="button" class="secondary mini-action return-btn" onclick="markRequestReturned('${r.id}')">🔄 مرتجع${r.closed ? ` (${Math.max(0,returnWindowDaysLeft(r))}ي)` : ""}</button>` : ""}
             <b>${(+r.total||0).toFixed(2)} ج</b>
             ${(+r.deposit||0) > 0 ? `<small class="deposit-chip">💵 عربون ${(+r.deposit).toFixed(2)} ج</small>` : ""}
