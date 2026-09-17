@@ -2,7 +2,7 @@
 let backupBusy=false,destructiveBusy=false;
 function captureLocalDataState(){const raw={};Object.values(K).forEach(k=>raw[k]=localStorage.getItem(k));return{raw,notif:localStorage.getItem("wf_notif_enabled"),schema:localStorage.getItem("wf_schema_version"),lastBackup:localStorage.getItem("wf_last_backup_at")}}
 function restoreLocalDataState(state){if(!state)return;for(const [k,v] of Object.entries(state.raw||{})){try{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){console.error("[backup] تعذر إعادة مفتاح",k,e)}}for(const [k,v] of [["wf_notif_enabled",state.notif],["wf_schema_version",state.schema],["wf_last_backup_at",state.lastBackup]]){try{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){console.error("[backup] تعذر إعادة الإعداد",k,e)}}}
-async function deleteAllOperationalData(){if(destructiveBusy)return;destructiveBusy=true;try{if(!confirm("سيتم حذف العملاء والأجهزة وأوامر الشغل وقطع الغيار وحركات المخزن والمصاريف وحركات الحسابات والخزنة. الإعدادات والمراكز والقرى لن تتأثر. هل تريد المتابعة؟"))return;if(!confirm("تأكيد نهائي جدًا: حذف كل البيانات التشغيلية؟"))return;const state=captureLocalDataState(),oldImages=window.ImageStore?.exportAll?await window.ImageStore.exportAll():{};try{if(window.ImageStore?.clearAll&&!await window.ImageStore.clearAll())throw new Error("clear-images");const values={};[K.c,K.d,K.r,K.p,K.m,K.e,K.tr,K.wtx].forEach(k=>values[k]=[]);if(!commitStorage(values))throw new Error("storage-failed");alert("تم حذف كل البيانات التشغيلية. سيتم تحديث الصفحة.");location.reload()}catch(e){restoreLocalDataState(state);try{if(window.ImageStore?.clearAll){await window.ImageStore.clearAll();if(window.ImageStore?.importAll)await window.ImageStore.importAll(oldImages)}}catch(imageError){console.error("[backup] تعذر إعادة الصور بعد فشل الحذف",imageError)}alert("تعذر إكمال الحذف. تم إلغاء العملية وإعادة البيانات السابقة قدر الإمكان.")}}finally{destructiveBusy=false}}
+async function deleteAllOperationalData(){if(destructiveBusy)return;destructiveBusy=true;try{if(!confirm("سيتم حذف العملاء والأجهزة وأوامر الشغل وقطع الغيار وحركات المخزن والمصاريف وحركات الحسابات والخزنة. الإعدادات والمراكز والقرى لن تتأثر. هل تريد المتابعة؟"))return;if(!confirm("تأكيد نهائي جدًا: حذف كل البيانات التشغيلية؟"))return;const state=captureLocalDataState(),oldImages=window.ImageStore?.exportAll?await window.ImageStore.exportAll():{};try{if(window.ImageStore?.clearAll&&!await window.ImageStore.clearAll())throw new Error("clear-images");const values={};[K.c,K.d,K.r,K.p,K.m,K.e,K.tr,K.wtx,K.inv].forEach(k=>values[k]=[]);if(!commitStorage(values))throw new Error("storage-failed");alert("تم حذف كل البيانات التشغيلية. سيتم تحديث الصفحة.");location.reload()}catch(e){restoreLocalDataState(state);try{if(window.ImageStore?.clearAll){await window.ImageStore.clearAll();if(window.ImageStore?.importAll)await window.ImageStore.importAll(oldImages)}}catch(imageError){console.error("[backup] تعذر إعادة الصور بعد فشل الحذف",imageError)}alert("تعذر إكمال الحذف. تم إلغاء العملية وإعادة البيانات السابقة قدر الإمكان.")}}finally{destructiveBusy=false}}
 
 function daysSinceLastBackup(){let last=localStorage.getItem("wf_last_backup_at");if(!last)return null;let d=new Date(last);if(Number.isNaN(d.getTime()))return null;return Math.floor((Date.now()-d.getTime())/86400000)}
 function lastBackupInfoText(){let days=daysSinceLastBackup();if(days===null)return "⚠️ لسه معملتش أي نسخة احتياطية أبدًا.";if(days===0)return "✅ آخر نسخة احتياطية: النهاردة.";if(days===1)return "✅ آخر نسخة احتياطية: من يوم واحد.";return `${days>=14?"⚠️":"✅"} آخر نسخة احتياطية: من ${days} يوم.`}
@@ -75,55 +75,84 @@ async function restoreBackupFile(input){
 
 function dataIntegrityReport(){
   const issues=[],seen=new Set(),collections=[[K.c,"العملاء"],[K.d,"الأجهزة"],[K.r,"أوامر الشغل"],[K.p,"قطع المخزن"],[K.m,"حركات المخزن"],[K.wtx,"حركات الحسابات"],[K.tr,"حركات الخزنة"]];
-  const add=(message)=>{if(!issues.includes(message))issues.push(message)};
-  for(const [key,label] of collections){for(const rec of arr(key)){if(!rec||typeof rec!=="object"){add(`${label}: سجل غير صالح.`);continue}if(rec.id){const token=key+":"+rec.id;if(seen.has(token))add(`${label}: رقم مكرر ${rec.id}.`);seen.add(token)}}}
+  const push=(o)=>{if(!issues.some(x=>x.key===o.key))issues.push(o)};
+  for(const [key,label] of collections){for(const rec of arr(key)){if(!rec||typeof rec!=="object"){push({key:`bad:${key}:${Math.random()}`,message:`${label}: سجل غير صالح.`,link:null,fix:null});continue}if(rec.id){const token=key+":"+rec.id;if(seen.has(token))push({key:`dup:${token}`,message:`${label}: رقم مكرر ${rec.id}.`,link:null,fix:null});seen.add(token)}}}
   const customers=new Set(arr(K.c).map(x=>x?.id).filter(Boolean)),devices=new Set(arr(K.d).map(x=>x?.id).filter(Boolean)),parts=new Set(arr(K.p).map(x=>x?.id).filter(Boolean));
-  arr(K.d).forEach(x=>{if(x?.customerId&&!customers.has(x.customerId))add(`الجهاز ${x.id||"بدون رقم"}: مرتبط بعميل غير موجود.`)});
+  arr(K.d).forEach(x=>{if(x?.customerId&&!customers.has(x.customerId))push({key:`dev-cust:${x.id}`,message:`الجهاز ${deviceName ? (x.type||"")+" — "+(x.brand||"") : x.id}: مرتبط بعميل غير موجود.`,link:`device.html?id=${x.id}`,linkLabel:"فتح الجهاز",fix:{type:"unlinkDeviceCustomer",args:{deviceId:x.id},detail:"هيمسح ربط الجهاز بالعميل غير الموجود بس (تصبح خانة العميل فاضية)، من غير ما يمسح الجهاز نفسه. تقدر تربطه بعميل صحيح بعد كده من صفحة الجهاز."}})});
   const requestIds=new Set(arr(K.r).map(x=>x?.id).filter(Boolean));
   arr(K.r).forEach(r=>{
-    const label=r.no||r.id||"بدون رقم",partsList=Array.isArray(r.parts)?r.parts:[],partsTotal=partsList.reduce((n,x)=>n+(+x.qty||0)*(+x.sell||0),0),partsCost=partsList.reduce((n,x)=>n+(+x.qty||0)*(+x.cost||0),0),expectedTotal=(+r.labor||0)+partsTotal;
-    if(r?.customerId&&!customers.has(r.customerId))add(`الأمر ${label}: العميل غير موجود.`);
-    if(r?.deviceId&&!devices.has(r.deviceId))add(`الأمر ${label}: الجهاز غير موجود.`);
-    partsList.filter(x=>!x.external).forEach(x=>{if(x.partId&&!parts.has(x.partId))add(`الأمر ${label}: قطعة غير موجودة (${x.partId}).`);if(!Number.isFinite(+x.qty)||+x.qty<=0)add(`الأمر ${label}: كمية قطعة غير صالحة.`)});
-    if(Math.abs((+r.partsTotal||0)-partsTotal)>.01)add(`الأمر ${label}: إجمالي قطع الغيار لا يطابق تفاصيل القطع.`);
-    if(Math.abs((+r.partsCost||0)-partsCost)>.01)add(`الأمر ${label}: تكلفة القطع لا تطابق تفاصيل القطع.`);
-    if(Math.abs((+r.total||0)-expectedTotal)>.01)add(`الأمر ${label}: الإجمالي لا يطابق المصنعية وقطع الغيار.`);
-    if(!Number.isFinite(+r.deposit)||+r.deposit<0||+r.deposit>(+r.total||0)+.01)add(`الأمر ${label}: العربون غير صالح مقارنة بالإجمالي.`);
+    const label=r.no||r.id||"بدون رقم",link=`request.html?id=${r.id}`,partsList=Array.isArray(r.parts)?r.parts:[];
+    if(r?.customerId&&!customers.has(r.customerId))push({key:`req-cust:${r.id}`,message:`الأمر ${label}: العميل المرتبط بيه غير موجود.`,link,linkLabel:"فتح الأمر",fix:null});
+    if(r?.deviceId&&!devices.has(r.deviceId))push({key:`req-dev:${r.id}`,message:`الأمر ${label}: الجهاز المرتبط بيه غير موجود.`,link,linkLabel:"فتح الأمر",fix:null});
+    partsList.forEach((x,idx)=>{
+      if(!x.external&&x.partId&&!parts.has(x.partId))push({key:`req-part:${r.id}:${idx}`,message:`الأمر ${label}: فيه قطعة غيار في القائمة اتمسحت من المخزن.`,link,linkLabel:"فتح الأمر",fix:{type:"removeOrderPartLine",args:{requestId:r.id,index:idx},detail:"هيشيل سطر القطعة دي بس من قائمة قطع الأمر (لإنها اتمسحت من المخزن)، ويعيد حساب إجمالي قطع الغيار والإجمالي الكلي للأمر على أساس باقي القطع. باقي بيانات الأمر مش هتتغير."}});
+      else if(!Number.isFinite(+x.qty)||+x.qty<=0)push({key:`req-qty:${r.id}:${idx}`,message:`الأمر ${label}: فيه سطر قطعة بكمية غير صالحة.`,link,linkLabel:"فتح الأمر",fix:{type:"removeOrderPartLine",args:{requestId:r.id,index:idx},detail:"هيشيل سطر القطعة اللي كميته غير صالحة بس من قائمة قطع الأمر، ويعيد حساب إجمالي قطع الغيار والإجمالي الكلي على أساس باقي القطع."}});
+    });
+    const freshParts=(Array.isArray(r.parts)?r.parts:[]).filter((x,idx)=>!((!x.external&&x.partId&&!parts.has(x.partId))||!Number.isFinite(+x.qty)||+x.qty<=0));
+    const partsTotal=freshParts.reduce((n,x)=>n+(+x.qty||0)*(+x.sell||0),0),partsCost=freshParts.reduce((n,x)=>n+(+x.qty||0)*(+x.cost||0),0),expectedTotal=(+r.labor||0)+partsTotal;
+    const totalsMismatch=Math.abs((+r.partsTotal||0)-partsTotal)>.01||Math.abs((+r.partsCost||0)-partsCost)>.01||Math.abs((+r.total||0)-expectedTotal)>.01;
+    if(totalsMismatch)push({key:`req-totals:${r.id}`,message:`الأمر ${label}: إجمالي قطع الغيار أو الإجمالي الكلي مش متطابق مع تفاصيل القطع.`,link,linkLabel:"فتح الأمر",fix:{type:"recomputeOrderTotals",args:{requestId:r.id},detail:`هيعيد حساب إجمالي قطع الغيار (${partsTotal.toFixed(2)} ج) والإجمالي الكلي (${expectedTotal.toFixed(2)} ج) بناءً على القطع الفعلية في الأمر، من غير ما يغيّر أي حاجة تانية.`}});
+    if(!Number.isFinite(+r.deposit)||+r.deposit<0||+r.deposit>expectedTotal+.01)push({key:`req-deposit:${r.id}`,message:`الأمر ${label}: قيمة العربون غير منطقية مقارنة بالإجمالي.`,link,linkLabel:"فتح الأمر",fix:{type:"clampOrderDeposit",args:{requestId:r.id},detail:`هيظبط العربون ليكون رقم منطقي (بين صفر و${expectedTotal.toFixed(2)} ج) من غير ما يغيّر أي حاجة تانية في الأمر.`}});
   });
-  arr(K.p).forEach(p=>{if(!Number.isFinite(+p.qty)||+p.qty<0)add(`قطعة ${p.name||p.id||"بدون اسم"}: كمية غير صالحة.`)});
-  arr(K.m).forEach(m=>{if(!m?.partId||!parts.has(m.partId))add(`حركة مخزن ${m.id||"بدون رقم"}: القطعة غير موجودة.`);if(!Number.isFinite(+m.qty)||+m.qty<=0)add(`حركة مخزن ${m.id||"بدون رقم"}: كمية غير صالحة.`);if(m.requestId&&!requestIds.has(m.requestId))add(`حركة مخزن ${m.id||"بدون رقم"}: أمر الشغل غير موجود.`)});
+  arr(K.p).forEach(p=>{if(!Number.isFinite(+p.qty)||+p.qty<0)push({key:`part-qty:${p.id}`,message:`قطعة ${p.name||p.id||"بدون اسم"}: الكمية في المخزن غير صالحة.`,link:`part.html?id=${p.id}`,linkLabel:"فتح القطعة",fix:{type:"zeroPartQty",args:{partId:p.id},detail:"هيظبط كمية القطعة دي في المخزن على صفر بس، من غير ما يغيّر سعرها أو أي بيانات تانية."}})});
+  arr(K.m).forEach(m=>{if(!m?.partId||!parts.has(m.partId))push({key:`move-part:${m.id}`,message:`حركة مخزن قديمة: القطعة المرتبطة بيها اتمسحت.`,link:"part-moves.html",linkLabel:"فتح حركات المخزن",fix:null});if(!Number.isFinite(+m.qty)||+m.qty<=0)push({key:`move-qty:${m.id}`,message:"حركة مخزن قديمة: الكمية المسجلة غير صالحة.",link:"part-moves.html",linkLabel:"فتح حركات المخزن",fix:null});if(m.requestId&&!requestIds.has(m.requestId))push({key:`move-req:${m.id}`,message:"حركة مخزن قديمة: أمر الشغل المرتبط بيها اتمسح.",link:"part-moves.html",linkLabel:"فتح حركات المخزن",fix:null})});
   const activeWallet=arr(K.wtx).filter(x=>!x.deleted),activeTreasury=arr(K.tr).filter(x=>!x.deleted),refSeen=new Set();
-  activeWallet.forEach(x=>{if(!Number.isFinite(+x.amount)||+x.amount<=0)add(`حركة حساب ${x.id||"بدون رقم"}: مبلغ غير صالح.`);if(x.type!=="in"&&x.type!=="out")add(`حركة حساب ${x.id||"بدون رقم"}: نوع الحركة غير صالح.`);if(x.refKey){if(refSeen.has(x.refKey))add(`حركات الحسابات: رابط مكرر ${x.refKey}.`);refSeen.add(x.refKey);const orderId=String(x.refKey).replace(/^order-(?:deposit|final)-/,"");if(/^order-(?:deposit|final)-/.test(x.refKey)&&!requestIds.has(orderId))add(`حركة حساب ${x.id||"بدون رقم"}: مرتبطة بأمر غير موجود.`)}});
-  activeTreasury.forEach(x=>{if(!Number.isFinite(+x.amount)||+x.amount<=0)add(`حركة خزنة ${x.id||"بدون رقم"}: مبلغ غير صالح.`);if(x.type!=="in"&&x.type!=="out")add(`حركة خزنة ${x.id||"بدون رقم"}: نوع الحركة غير صالح.`)});
+  activeWallet.forEach(x=>{if(!Number.isFinite(+x.amount)||+x.amount<=0)push({key:`wtx-amt:${x.id}`,message:"حركة حساب: مبلغ غير صالح.",link:"wallets.html",linkLabel:"فتح الحسابات",fix:null});if(x.type!=="in"&&x.type!=="out")push({key:`wtx-type:${x.id}`,message:"حركة حساب: نوع الحركة غير صالح.",link:"wallets.html",linkLabel:"فتح الحسابات",fix:null});if(x.refKey){if(refSeen.has(x.refKey))push({key:`wtx-refdup:${x.refKey}`,message:`حركات الحسابات: رابط مكرر ${x.refKey}.`,link:"wallets.html",linkLabel:"فتح الحسابات",fix:null});refSeen.add(x.refKey);const orderId=String(x.refKey).replace(/^order-(?:deposit|final)-/,"");if(/^order-(?:deposit|final)-/.test(x.refKey)&&!requestIds.has(orderId))push({key:`wtx-reforder:${x.id}`,message:"حركة حساب: مرتبطة بأمر شغل غير موجود.",link:"wallets.html",linkLabel:"فتح الحسابات",fix:null})}});
+  activeTreasury.forEach(x=>{if(!Number.isFinite(+x.amount)||+x.amount<=0)push({key:`tr-amt:${x.id}`,message:"حركة خزنة: مبلغ غير صالح.",link:"treasury.html",linkLabel:"فتح الخزنة",fix:null});if(x.type!=="in"&&x.type!=="out")push({key:`tr-type:${x.id}`,message:"حركة خزنة: نوع الحركة غير صالح.",link:"treasury.html",linkLabel:"فتح الخزنة",fix:null})});
   const transferIds=new Set([...activeWallet,...activeTreasury].map(x=>x.transferId).filter(Boolean));
-  transferIds.forEach(id=>{const w=activeWallet.filter(x=>x.transferId===id),t=activeTreasury.filter(x=>x.transferId===id);if(w.length!==1||t.length!==1)add(`التحويل ${id}: لا يحتوي طرفًا واحدًا صحيحًا في الحساب والخزنة.`);else if(+w[0].amount!==+t[0].amount)add(`التحويل ${id}: المبلغ مختلف بين الطرفين.`)});
+  transferIds.forEach(id=>{const w=activeWallet.filter(x=>x.transferId===id),t=activeTreasury.filter(x=>x.transferId===id);if(w.length!==1||t.length!==1)push({key:`transfer-parts:${id}`,message:`التحويل ${id}: لا يحتوي طرفًا واحدًا صحيحًا في الحساب والخزنة.`,link:"treasury.html",linkLabel:"فتح الخزنة",fix:null});else if(+w[0].amount!==+t[0].amount)push({key:`transfer-amt:${id}`,message:`التحويل ${id}: المبلغ مختلف بين طرفَي التحويل.`,link:"treasury.html",linkLabel:"فتح الخزنة",fix:null})});
   return {issues,counts:{customers:arr(K.c).length,devices:arr(K.d).length,requests:arr(K.r).length,parts:arr(K.p).length,moves:arr(K.m).length,wallets:activeWallet.length,treasury:activeTreasury.length}};
 }
 function runDataIntegrityCheck(){
   const host=document.getElementById("dataIntegrityResult");if(!host)return;
   const report=dataIntegrityReport(),c=report.counts;
   if(!report.issues.length){host.innerHTML=`<div class="hint">✅ لم يتم العثور على تعارضات واضحة. تم فحص ${c.customers} عميل، ${c.devices} جهاز، ${c.requests} أمر، ${c.parts} قطعة، و${c.moves} حركة مخزن.</div>`;return}
-  host.innerHTML=`<div class="hint">⚠️ تم العثور على ${report.issues.length} ملاحظة. لم يتم تعديل أي بيانات.</div><ul>${report.issues.slice(0,50).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>${report.issues.length>50?`<div class="hint">تم عرض أول 50 ملاحظة فقط.</div>`:""}<button class="secondary mini-action" type="button" data-action="integrity-fix">🔧 إصلاح ما يمكن إصلاحه تلقائيًا</button><div class="hint">إعادة حساب الإجماليات والعربون من تفاصيل كل أمر فقط. الملاحظات المتعلقة بروابط مفقودة (عميل/جهاز/قطعة غير موجودة) لازم تتراجع يدويًا ومش بتتصلح تلقائي.</div>`;
+  host.innerHTML=`<div class="hint">⚠️ تم العثور على ${report.issues.length} ملاحظة. لم يتم تعديل أي بيانات تلقائيًا. اضغط على أي ملاحظة عشان تفتح السجل نفسه وتشوف اللي ناقص، وكل ملاحظة قابلة للإصلاح ليها زرار خاص بيها بيقولك هيعمل إيه بالظبط قبل ما ينفّذ.</div>
+  <ul class="integrity-list">${report.issues.slice(0,80).map(x=>`<li>
+    <span>${esc(x.message)}</span>
+    <span class="compact-actions">${x.link?`<a class="secondary mini-action" href="${esc(x.link)}">${esc(x.linkLabel||"فتح")} ›</a>`:""}${x.fix?`<button type="button" class="secondary mini-action" onclick="applyIntegrityFix('${x.key}')">🔧 إصلاح</button>`:""}</span>
+  </li>`).join("")}</ul>${report.issues.length>80?`<div class="hint">تم عرض أول 80 ملاحظة فقط.</div>`:""}`;
 }
-function autoFixDataIntegrity(){
-  if(!confirm("هيتم إعادة حساب إجمالي القطع وتكلفتها والإجمالي الكلي والعربون لكل أمر شغل بناءً على تفاصيله الفعلية، وتصحيح أي كمية قطعة سالبة إلى صفر. الملاحظات الخاصة بروابط مفقودة (عميل/جهاز/قطعة محذوفة) مش هتتصلح تلقائي. تكمل؟"))return;
-  const requests=arr(K.r),parts=arr(K.p);let fixed=0;
-  requests.forEach(r=>{
+function applyIntegrityFix(key){
+  const issue=dataIntegrityReport().issues.find(x=>x.key===key);
+  if(!issue||!issue.fix){runDataIntegrityCheck();return}
+  if(!confirm(issue.fix.detail+"\n\nمتأكد إنك عايز تنفّذ الإصلاح ده؟"))return;
+  const {type,args}=issue.fix;
+  if(type==="unlinkDeviceCustomer"){
+    const all=arr(K.d),d=all.find(x=>x.id===args.deviceId);if(!d)return runDataIntegrityCheck();
+    d.customerId="";
+    if(!saveJSONSafe(K.d,all))return;
+    renderDevices?.();
+  }else if(type==="zeroPartQty"){
+    const all=arr(K.p),p=all.find(x=>x.id===args.partId);if(!p)return runDataIntegrityCheck();
+    p.qty=0;
+    if(!saveJSONSafe(K.p,all))return;
+    renderParts?.();
+  }else if(type==="removeOrderPartLine"){
+    const all=arr(K.r),r=all.find(x=>x.id===args.requestId);if(!r||!Array.isArray(r.parts))return runDataIntegrityCheck();
+    r.parts.splice(args.index,1);
+    const partsTotal=r.parts.reduce((n,x)=>n+(+x.qty||0)*(+x.sell||0),0),partsCost=r.parts.reduce((n,x)=>n+(+x.qty||0)*(+x.cost||0),0);
+    r.partsTotal=partsTotal;r.partsCost=partsCost;r.total=(+r.labor||0)+partsTotal;
+    if(+r.deposit>r.total)r.deposit=r.total;
+    if(!saveJSONSafe(K.r,all))return;
+    renderRequests?.();
+  }else if(type==="recomputeOrderTotals"){
+    const all=arr(K.r),r=all.find(x=>x.id===args.requestId);if(!r)return runDataIntegrityCheck();
     const partsList=Array.isArray(r.parts)?r.parts:[];
-    const partsTotal=partsList.reduce((n,x)=>n+(+x.qty||0)*(+x.sell||0),0);
-    const partsCost=partsList.reduce((n,x)=>n+(+x.qty||0)*(+x.cost||0),0);
-    const expectedTotal=(+r.labor||0)+partsTotal;
-    if(Math.abs((+r.partsTotal||0)-partsTotal)>.01){r.partsTotal=partsTotal;fixed++}
-    if(Math.abs((+r.partsCost||0)-partsCost)>.01){r.partsCost=partsCost;fixed++}
-    if(Math.abs((+r.total||0)-expectedTotal)>.01){r.total=expectedTotal;fixed++}
-    if(!Number.isFinite(+r.deposit)||+r.deposit<0){r.deposit=0;fixed++}
-    else if(+r.deposit>expectedTotal+.01){r.deposit=expectedTotal;fixed++}
-  });
-  parts.forEach(p=>{if(!Number.isFinite(+p.qty)||+p.qty<0){p.qty=0;fixed++}});
-  if(!fixed){alert("مفيش حاجة قابلة للإصلاح التلقائي دلوقتي.");return}
-  if(!commitStorage({[K.r]:requests,[K.p]:parts}))return;
-  alert(`تم تصحيح ${fixed} قيمة. الملاحظات المتبقية (لو فيه) محتاجة مراجعة يدوية.`);
-  runDataIntegrityCheck();renderRequests();renderParts();
+    const partsTotal=partsList.reduce((n,x)=>n+(+x.qty||0)*(+x.sell||0),0),partsCost=partsList.reduce((n,x)=>n+(+x.qty||0)*(+x.cost||0),0);
+    r.partsTotal=partsTotal;r.partsCost=partsCost;r.total=(+r.labor||0)+partsTotal;
+    if(+r.deposit>r.total)r.deposit=r.total;
+    if(!saveJSONSafe(K.r,all))return;
+    renderRequests?.();
+  }else if(type==="clampOrderDeposit"){
+    const all=arr(K.r),r=all.find(x=>x.id===args.requestId);if(!r)return runDataIntegrityCheck();
+    const expectedTotal=+r.total||0;
+    if(!Number.isFinite(+r.deposit)||+r.deposit<0)r.deposit=0;
+    else if(+r.deposit>expectedTotal)r.deposit=expectedTotal;
+    if(!saveJSONSafe(K.r,all))return;
+    renderRequests?.();
+  }
+  runDataIntegrityCheck();
 }
 
 // أمر شغل سريع من الرئيسية: عميل + جهاز + عطل، والباقي يتظبط من صفحة الأمر نفسها.
