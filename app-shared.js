@@ -262,6 +262,54 @@ function closeOrder(i){markPaidAndClose(i)}
    shared-data.js (لازم يتحمّل قبل app.js في كل صفحة) عشان تبقى نسخة واحدة
    يستخدمها كل الملفات بدل ما تتكرر في أكتر من مكان. */
 function toggle(x){document.getElementById(x)?.classList.toggle("hidden")}
+/* ---------------------------------------------------------------------
+   اختيار صورة بزرارين منفصلين (📷 كاميرا / 🖼️ من الصور) بدل حقل واحد
+   accept="image/*" عادي:
+   المتصفحات بتتعامل مع حقل الصور الواحد بشكل مختلف خالص — سامسونج
+   إنترنت (وغيره) بيفتح قائمة اختيار النظام العادية (فيها الكاميرا
+   والمعرض والملفات مع بعض)، لكن كروم على أندرويد بقى بيفتح "منتقي
+   الصور" الخاص بيه هو (Photo Picker، شكله زي جوجل فوتوز) واللي مفيهوش
+   خيار كاميرا خالص. عشان نضمن إن خيار الكاميرا يفضل متاح مهما كان
+   المتصفح، بنستخدم زرارين منفصلين: كل واحد بيفتح حقل ملف مؤقت خاص بيه
+   (بكاميرا أو من غيرها)، وبعد الاختيار بننقل الملف لنفس حقل الفورم
+   الأصلي (نفس الـid اللي باقي الكود بيقرأ منه/يفضّيه، من غير ما يتغيّر
+   فيه أي حاجة) عن طريق DataTransfer، وبنطلق عليه حدث change عادي عشان
+   أي كود تاني مربوط بالحقل الأصلي (زي معاينة الصورة) يشتغل زي ما هو.
+   الاستخدام في الـHTML: الحقل الأصلي بيتحط hidden، وجنبه
+   <div class="dual-photo-picker" data-target="id-الحقل"> فيها الزرارين
+   دول + <span class="dual-photo-filename"> بيعرض اسم الملف المختار.
+   --------------------------------------------------------------------- */
+function refreshDualPhotoName(targetId){
+  const target=document.getElementById(targetId);if(!target)return;
+  const box=document.querySelector(`.dual-photo-picker[data-target="${targetId}"]`);
+  const nameEl=box?.querySelector(".dual-photo-filename");
+  if(nameEl)nameEl.textContent=target.files&&target.files[0]?target.files[0].name:"لم يتم اختيار ملف";
+}
+function initDualImagePickers(){
+  document.querySelectorAll(".dual-photo-picker[data-target]").forEach(box=>{
+    if(box.dataset.wired)return;box.dataset.wired="1";
+    const targetId=box.dataset.target,target=document.getElementById(targetId);
+    if(!target)return;
+    refreshDualPhotoName(targetId);
+    box.querySelectorAll(".dual-photo-btn").forEach(btn=>{
+      btn.onclick=()=>{
+        const temp=document.createElement("input");
+        temp.type="file";temp.accept="image/*";
+        if(btn.dataset.mode==="camera")temp.capture="environment";
+        temp.onchange=()=>{
+          if(temp.files&&temp.files[0]){
+            try{const dt=new DataTransfer();dt.items.add(temp.files[0]);target.files=dt.files}catch(e){}
+            target.dispatchEvent(new Event("change",{bubbles:true}));
+            refreshDualPhotoName(targetId);
+          }
+        };
+        temp.click();
+      };
+    });
+    target.addEventListener("change",()=>refreshDualPhotoName(targetId));
+  });
+}
+document.addEventListener("DOMContentLoaded",()=>setTimeout(initDualImagePickers,0));
 const QUICK_ADD_LABELS={quickCustomerBox:"➕ عميل",quickDeviceBox:"➕ جهاز",quickDeviceCustomerBox:"➕ عميل",qoCustomerBox:"➕ عميل",qoDeviceBox:"➕ جهاز"};
 function toggleQuickAdd(boxId){let box=document.getElementById(boxId);if(!box)return;let btn=document.querySelector(`[data-opens="${boxId}"]`);let opening=box.classList.contains("hidden");box.classList.toggle("hidden");if(btn){btn.textContent=opening?"➖ إلغاء الإضافة":(QUICK_ADD_LABELS[boxId]||"➕ إضافة");btn.classList.toggle("quick-add-open",opening)}if(opening)setTimeout(()=>box.scrollIntoView({behavior:"smooth",block:"nearest"}),50)}
 function closeQuickAdd(boxId){let box=document.getElementById(boxId);if(!box)return;box.classList.add("hidden");let btn=document.querySelector(`[data-opens="${boxId}"]`);if(btn){btn.textContent=QUICK_ADD_LABELS[boxId]||"➕ إضافة";btn.classList.remove("quick-add-open")}}

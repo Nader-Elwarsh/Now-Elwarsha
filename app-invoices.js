@@ -24,7 +24,7 @@ function filterInvoicePartOptions() {
 }
 function invoiceFormReset() {
   _editingInvoiceId = null;
-  const photo = document.getElementById("invPhoto"); if (photo) photo.value = "";
+  const photo = document.getElementById("invPhoto"); if (photo) photo.value = ""; refreshDualPhotoName("invPhoto");
   const note = document.getElementById("invNote"); if (note) note.value = "";
   const btn = document.getElementById("invSaveBtn"); if (btn) btn.textContent = "💾 حفظ الفاتورة";
   const filterEl = document.getElementById("invPartFilter"); if (filterEl) filterEl.value = "";

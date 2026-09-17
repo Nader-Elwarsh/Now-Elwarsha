@@ -106,7 +106,7 @@ function toggleRestockBox() {
     document.getElementById("stkQty").value = 1;
     document.getElementById("stkBuy").value = "";
     document.getElementById("stkNote").value = "";
-    document.getElementById("stkInvoice").value = "";
+    document.getElementById("stkInvoice").value = ""; refreshDualPhotoName("stkInvoice");
     document.getElementById("stkCurrentHint").textContent = "اكتب اسم القطعة أو الكود، أو اسم صنف جديد عشان تضيفه.";
     document.getElementById("stkPartSearch")?.focus();
   }

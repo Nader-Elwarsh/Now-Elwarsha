@@ -74,6 +74,9 @@
    واضح إنه هو السجل المقصود بالظبط. */
 .integrity-highlight{animation:integrityFlash 3s ease-out 1}
 @keyframes integrityFlash{0%{box-shadow:0 0 0 3px var(--accent,#3b82f6);background:var(--accent-soft,rgba(59,130,246,.18))}100%{box-shadow:0 0 0 0 transparent}}
+/* زرارين اختيار الصورة (كاميرا / من الصور) — راجع initDualImagePickers في app-shared.js */
+.dual-photo-picker{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:normal}
+.dual-photo-picker .dual-photo-filename{color:var(--text-muted);font-size:12px}
 .select-add{display:grid;grid-template-columns:1fr auto;gap:6px}
 .quick-add-btn.quick-add-open{background:#fde2e2;color:#a11}
 .report-range{margin-bottom:6px}
