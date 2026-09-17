@@ -7,6 +7,17 @@ function imageToDataURL(file,max=720,quality=.62){return new Promise((resolve,re
 // النظام (أكتر من 40 مكان) كان بيكمل العملية وكأن الحفظ نجح حتى لو فشل
 // فعليًا. التصحيح: إرجاع نتيجة put() الحقيقية بدل true ثابتة.
 function saveJSONSafe(k,v){return put(k,v)===true}
+async function showImagePreview(ref,title){
+  if(!ref)return;
+  const src=window.ImageStore?await window.ImageStore.resolveSrc(ref):ref;
+  if(!src){alert("تعذر تحميل الصورة.");return}
+  document.querySelectorAll(".img-preview-overlay").forEach(x=>x.remove());
+  const ov=document.createElement("div");
+  ov.className="img-preview-overlay";
+  ov.innerHTML=`<div class="img-preview-box"><div class="img-preview-head"><b>${esc(title||"عرض الصورة")}</b><button type="button" class="secondary mini-action" onclick="this.closest('.img-preview-overlay').remove()">✖ إغلاق</button></div><img src="${src}"></div>`;
+  ov.onclick=e=>{if(e.target===ov)ov.remove()};
+  document.body.appendChild(ov);
+}
 function localDateKey(date){return dayKeyLocal(date)}
 function monthKeyLocal(value){let d=new Date(value);if(Number.isNaN(d.getTime()))return"";return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
 function orderNo(date=new Date()){let y=String(date.getFullYear()).slice(-2),m=date.getMonth()+1,d=date.getDate(),prefix=`W${y}-${m}-${d}-`,ymd=localDateKey(date);let n=arr(K.r).filter(x=>x.createdAt&&localDateKey(new Date(x.createdAt))===ymd).length+1;while(arr(K.r).some(x=>x.no===prefix+n))n++;return prefix+n}
@@ -24,8 +35,8 @@ function normalizeOrderNumbers(){let rs=arr(K.r),used=new Set(),groups={};rs.for
    كل تغيير حالة بيتسجل بتاريخه ووقته في r.statusHistory. الإلغاء لازم
    له سبب (r.cancelReason). الأولوية اتشالت خالص من دورة أمر الشغل.
    ========================================================= */
-const WORK_ORDER_STATUSES=["جديد","جاري التنفيذ","مكتمل","ملغي"];
-const WORK_ORDER_TRANSITIONS={"جديد":["جاري التنفيذ","ملغي"],"جاري التنفيذ":["مكتمل","ملغي"],"مكتمل":["جاري التنفيذ"],"ملغي":["جديد"]};
+const WORK_ORDER_STATUSES=["جديد","جاري التنفيذ","مجمد","مكتمل","ملغي"];
+const WORK_ORDER_TRANSITIONS={"جديد":["جاري التنفيذ","مجمد","ملغي"],"جاري التنفيذ":["مكتمل","مجمد","ملغي"],"مجمد":["جاري التنفيذ","ملغي"],"مكتمل":["جاري التنفيذ"],"ملغي":["جديد"]};
 function canTransitionStatus(from,to){if(!from)return true;if(from===to)return true;return (WORK_ORDER_TRANSITIONS[from]||[]).includes(to)}
 function nextStatusOptions(status){let opts=[status,...(WORK_ORDER_TRANSITIONS[status]||[])];return [...new Set(opts)]}
 function recordStatusHistory(r,from,to,note){r.statusHistory=Array.isArray(r.statusHistory)?r.statusHistory:[];r.statusHistory.push({from:from||"",to,at:new Date().toISOString(),note:note||""})}
@@ -127,6 +138,7 @@ function requestAgeInfo(r){
   if(!r||r.status==="مكتمل"||r.status==="ملغي")return null;
   let days=requestAgeDays(r);
   if(days===null)return null;
+  if(r.status==="مجمد")return{days,cls:"age-frozen",dot:"❄️",range:"مجمّد (العداد متوقف)",label:days===0?"مجمّد اليوم":(days===1?"مجمّد من يوم":`مجمّد من ${days} يوم`)};
   let threshold=Number.isFinite(+settings().overdueAlertDays)&&+settings().overdueAlertDays>0?+settings().overdueAlertDays:7;
   let mid=Math.max(1,Math.floor(threshold/2));
   let cls,dot,range;
@@ -146,7 +158,7 @@ function requestAgeLegendHtml(){
   return `<div class="age-legend">${items.map(b=>`<span class="age-legend-item ${b.cls}">${b.dot} ${esc(b.range)}</span>`).join("")}</div>`
 }
 function requestIsStale(r){
-  if(!r||r.status==="مكتمل"||r.status==="ملغي"||r.closed)return false;
+  if(!r||r.status==="مكتمل"||r.status==="ملغي"||r.status==="مجمد"||r.closed)return false;
   let days=requestAgeDays(r);
   if(days===null)return false;
   let threshold=Number.isFinite(+settings().overdueAlertDays)&&+settings().overdueAlertDays>0?+settings().overdueAlertDays:7;
@@ -217,7 +229,12 @@ function requestWorkshopStayMs(r){
 function requestAgeMs(r){
   let s=requestCreatedDate(r);if(!s)return null;
   let e=r?.status==="مكتمل"?requestCompletedDate(r):null;
-  return durationMs(s,e||new Date());
+  // أمر مجمد: العداد بيتوقف عند لحظة التجميد، فمش بيزيد وهو واقف منتظر رد
+  // العميل. frozenMs بيجمع كل فترات التجميد السابقة (لو اتفك وتجمد أكتر من مرة).
+  let frozenRef=(r?.status==="مجمد"&&r.frozenAt)?new Date(r.frozenAt):null;
+  let raw=durationMs(s,e||frozenRef||new Date());
+  let frozenMs=+r?.frozenMs||0;
+  return Math.max(0,raw-frozenMs);
 }
 
 function markPaidAndClose(i){

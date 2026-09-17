@@ -79,7 +79,7 @@
 
         <h2>📋 سجل الحركات (${moves.length})</h2>
         ${visible.length ? `<div class="report-table-wrap"><table class="report-table-full">
-          <tr><th>التاريخ</th><th>النوع</th><th>الكمية</th><th>الأمر المرتبط</th></tr>
+          <tr><th>التاريخ</th><th>النوع</th><th>الكمية</th><th>الأمر المرتبط</th><th>الفاتورة</th></tr>
           ${visible.map(m => {
             const req = m.requestId ? arr(K.r).find(r => r.id === m.requestId) : null;
             return `<tr>
@@ -87,6 +87,7 @@
               <td>${esc(m.type || "—")}</td>
               <td>${+m.qty || 0}</td>
               <td>${req ? `<a href="request.html?id=${req.id}">${esc(req.no || req.id)} — ${esc(customerName(req.customerId))}</a>` : (m.note ? esc(m.note) : "—")}</td>
+              <td>${m.invoice ? `<button type="button" class="secondary mini-action" onclick="showImagePreview('${esc(m.invoice)}','📷 فاتورة توريد')">📷 عرض</button>` : "—"}</td>
             </tr>`;
           }).join("")}
         </table></div>` : `<div class="report-empty">لا توجد حركات مطابقة لهذا الفلتر.</div>`}

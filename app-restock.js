@@ -106,6 +106,7 @@ function toggleRestockBox() {
     document.getElementById("stkQty").value = 1;
     document.getElementById("stkBuy").value = "";
     document.getElementById("stkNote").value = "";
+    document.getElementById("stkInvoice").value = "";
     document.getElementById("stkCurrentHint").textContent = "اكتب اسم القطعة أو الكود، أو اسم صنف جديد عشان تضيفه.";
     document.getElementById("stkPartSearch")?.focus();
   }
@@ -162,12 +163,13 @@ function hideRestockPartResults() {
   setTimeout(() => document.getElementById("stkPartResults")?.classList.add("hidden"), 150);
 }
 
-function saveRestock() {
+async function saveRestock() {
   const pid = document.getElementById("stkPart")?.value || "";
   if (!pid) return alert("اختر قطعة موجودة من نتائج البحث، أو استخدم خيار «صنف جديد» لو مش موجودة.");
   const qty = +(document.getElementById("stkQty")?.value || 0);
   if (!Number.isFinite(qty) || qty < 1) return alert("اكتب كمية واردة صحيحة (أكبر من صفر).");
   const buyEl = document.getElementById("stkBuy"), note = (document.getElementById("stkNote")?.value || "").trim();
+  const invoiceFile = document.getElementById("stkInvoice")?.files?.[0] || null;
   const all = arr(K.p), p = all.find(x => x.id === pid);
   if (!p) return alert("القطعة غير موجودة (ربما اتحذفت). جرّب تدور تاني.");
   p.qty = (+p.qty || 0) + qty;
@@ -175,9 +177,14 @@ function saveRestock() {
     const nb = +buyEl.value;
     if (Number.isFinite(nb) && nb >= 0) p.buy = nb;
   }
+  let invoice = "";
+  if (invoiceFile) {
+    const dataURL = await imageToDataURL(invoiceFile, 1400, 0.72);
+    invoice = window.ImageStore ? await window.ImageStore.save(dataURL) : dataURL;
+  }
   const result=withRollback([K.p,K.m],()=>{
     if(!put(K.p,all))return{ok:false};
-    const moves=arr(K.m);moves.push({id:id(),partId:pid,type:"توريد",note,qty,at:new Date().toISOString()});
+    const moves=arr(K.m);moves.push({id:id(),partId:pid,type:"توريد",note,qty,invoice,at:new Date().toISOString()});
     if(!put(K.m,moves))return{ok:false};
     return{ok:true};
   });

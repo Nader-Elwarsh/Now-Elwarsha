@@ -22,6 +22,7 @@
   }
 
   var LK_HASH = "wf_pin_hash", LK_SALT = "wf_pin_salt", SK_UNLOCK = "wf_unlocked";
+  var LK_ENTRY = "wf_pin_lock_entry", LK_DELETE = "wf_pin_lock_delete";
 
   var WFLock = {
     isSet: function () { return !!localStorage.getItem(LK_HASH); },
@@ -29,6 +30,8 @@
       var salt = randSalt();
       localStorage.setItem(LK_SALT, salt);
       localStorage.setItem(LK_HASH, wfHash(pin, salt));
+      if (localStorage.getItem(LK_ENTRY) === null) localStorage.setItem(LK_ENTRY, "1");
+      if (localStorage.getItem(LK_DELETE) === null) localStorage.setItem(LK_DELETE, "1");
     },
     verify: function (pin) {
       var salt = localStorage.getItem(LK_SALT) || "";
@@ -37,10 +40,16 @@
     removePin: function () {
       localStorage.removeItem(LK_HASH);
       localStorage.removeItem(LK_SALT);
+      localStorage.removeItem(LK_ENTRY);
+      localStorage.removeItem(LK_DELETE);
       sessionStorage.removeItem(SK_UNLOCK);
     },
     isUnlocked: function () { return sessionStorage.getItem(SK_UNLOCK) === "1"; },
     unlock: function () { sessionStorage.setItem(SK_UNLOCK, "1"); },
+    entryLockEnabled: function () { return localStorage.getItem(LK_ENTRY) !== "0"; },
+    setEntryLockEnabled: function (v) { localStorage.setItem(LK_ENTRY, v ? "1" : "0"); },
+    deleteLockEnabled: function () { return localStorage.getItem(LK_DELETE) !== "0"; },
+    setDeleteLockEnabled: function (v) { localStorage.setItem(LK_DELETE, v ? "1" : "0"); },
     /* تأكيد إضافي قبل عملية حساسة، يرجع true/false */
     requirePin: function (msg) {
       if (!this.isSet()) return true;
@@ -49,9 +58,14 @@
       if (!this.verify(pin)) { alert("رقم سري غير صحيح."); return false; }
       return true;
     },
+    /* زي requirePin بالظبط، لكن بيحترم مفتاح تفعيل قفل الحذف لوحده */
+    requireDeletePin: function (msg) {
+      if (!this.isSet() || !this.deleteLockEnabled()) return true;
+      return this.requirePin(msg);
+    },
     /* يشتغل عند تحميل أي صفحة؛ يمنع أي كود تاني من الاستمرار لحد ما الرقم يتظبط */
     ensureEntryUnlocked: function () {
-      if (!this.isSet() || this.isUnlocked()) return;
+      if (!this.isSet() || !this.entryLockEnabled() || this.isUnlocked()) return;
       while (true) {
         var pin = prompt("🔒 اكتب الرقم السري للدخول للنظام:");
         if (pin !== null && this.verify(pin)) { this.unlock(); return; }
@@ -75,7 +89,7 @@
       var orig = window[name];
       if (typeof orig !== "function") return;
       window[name] = function () {
-        if (!WFLock.requirePin("🔒 اكتب الرقم السري لتأكيد: " + guarded[name])) return;
+        if (!WFLock.requireDeletePin("🔒 اكتب الرقم السري لتأكيد: " + guarded[name])) return;
         return orig.apply(this, arguments);
       };
     });

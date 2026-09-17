@@ -81,9 +81,17 @@ function settingsPage(){
 }
 function pinLockSettingsHtml(){
   let on=window.WFLock&&WFLock.isSet();
-  if(on)return `<p class="hint">🔒 الحماية مفعّلة حاليًا.</p><div class="delete-actions"><button class="secondary mini-action" type="button" data-action="pin-change">✏️ تغيير الرقم السري</button><button class="danger-btn mini-action" type="button" data-action="pin-remove">🗑️ إلغاء الحماية</button></div>`;
+  if(on){
+    let e=WFLock.entryLockEnabled(),d=WFLock.deleteLockEnabled();
+    return `<p class="hint">🔒 الحماية مفعّلة حاليًا. كل استخدام تقدر تشغّله أو تطفيه لوحده:</p>
+    <div class="setting-row"><span class="setting-name">قفل الدخول للتطبيق</span><span class="compact-actions"><button type="button" class="secondary mini-action${e?" active-opt":""}" onclick="togglePinEntryLock()">${e?"✅ مفعّل":"⭘ متوقف"}</button></span></div>
+    <div class="setting-row"><span class="setting-name">قفل عمليات الحذف الجماعي/إعادة التهيئة</span><span class="compact-actions"><button type="button" class="secondary mini-action${d?" active-opt":""}" onclick="togglePinDeleteLock()">${d?"✅ مفعّل":"⭘ متوقف"}</button></span></div>
+    <div class="delete-actions"><button class="secondary mini-action" type="button" data-action="pin-change">✏️ تغيير الرقم السري</button><button class="danger-btn mini-action" type="button" data-action="pin-remove">🗑️ إلغاء الحماية نهائيًا</button></div>`;
+  }
   return `<div class="delete-actions"><button class="primary mini-action" type="button" data-action="pin-set">🔒 تفعيل الحماية بالرقم السري</button></div>`;
 }
+function togglePinEntryLock(){if(!window.WFLock)return;WFLock.setEntryLockEnabled(!WFLock.entryLockEnabled());settingsPage()}
+function togglePinDeleteLock(){if(!window.WFLock)return;WFLock.setDeleteLockEnabled(!WFLock.deleteLockEnabled());settingsPage()}
 function setAppPin(){
   if(!window.WFLock)return;
   let p1=prompt("اكتب رقم سري جديد (4 أرقام على الأقل):");

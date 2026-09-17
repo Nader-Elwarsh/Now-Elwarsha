@@ -103,7 +103,27 @@ function runDataIntegrityCheck(){
   const host=document.getElementById("dataIntegrityResult");if(!host)return;
   const report=dataIntegrityReport(),c=report.counts;
   if(!report.issues.length){host.innerHTML=`<div class="hint">✅ لم يتم العثور على تعارضات واضحة. تم فحص ${c.customers} عميل، ${c.devices} جهاز، ${c.requests} أمر، ${c.parts} قطعة، و${c.moves} حركة مخزن.</div>`;return}
-  host.innerHTML=`<div class="hint">⚠️ تم العثور على ${report.issues.length} ملاحظة. لم يتم تعديل أي بيانات.</div><ul>${report.issues.slice(0,50).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>${report.issues.length>50?`<div class="hint">تم عرض أول 50 ملاحظة فقط.</div>`:""}`;
+  host.innerHTML=`<div class="hint">⚠️ تم العثور على ${report.issues.length} ملاحظة. لم يتم تعديل أي بيانات.</div><ul>${report.issues.slice(0,50).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>${report.issues.length>50?`<div class="hint">تم عرض أول 50 ملاحظة فقط.</div>`:""}<button class="secondary mini-action" type="button" data-action="integrity-fix">🔧 إصلاح ما يمكن إصلاحه تلقائيًا</button><div class="hint">إعادة حساب الإجماليات والعربون من تفاصيل كل أمر فقط. الملاحظات المتعلقة بروابط مفقودة (عميل/جهاز/قطعة غير موجودة) لازم تتراجع يدويًا ومش بتتصلح تلقائي.</div>`;
+}
+function autoFixDataIntegrity(){
+  if(!confirm("هيتم إعادة حساب إجمالي القطع وتكلفتها والإجمالي الكلي والعربون لكل أمر شغل بناءً على تفاصيله الفعلية، وتصحيح أي كمية قطعة سالبة إلى صفر. الملاحظات الخاصة بروابط مفقودة (عميل/جهاز/قطعة محذوفة) مش هتتصلح تلقائي. تكمل؟"))return;
+  const requests=arr(K.r),parts=arr(K.p);let fixed=0;
+  requests.forEach(r=>{
+    const partsList=Array.isArray(r.parts)?r.parts:[];
+    const partsTotal=partsList.reduce((n,x)=>n+(+x.qty||0)*(+x.sell||0),0);
+    const partsCost=partsList.reduce((n,x)=>n+(+x.qty||0)*(+x.cost||0),0);
+    const expectedTotal=(+r.labor||0)+partsTotal;
+    if(Math.abs((+r.partsTotal||0)-partsTotal)>.01){r.partsTotal=partsTotal;fixed++}
+    if(Math.abs((+r.partsCost||0)-partsCost)>.01){r.partsCost=partsCost;fixed++}
+    if(Math.abs((+r.total||0)-expectedTotal)>.01){r.total=expectedTotal;fixed++}
+    if(!Number.isFinite(+r.deposit)||+r.deposit<0){r.deposit=0;fixed++}
+    else if(+r.deposit>expectedTotal+.01){r.deposit=expectedTotal;fixed++}
+  });
+  parts.forEach(p=>{if(!Number.isFinite(+p.qty)||+p.qty<0){p.qty=0;fixed++}});
+  if(!fixed){alert("مفيش حاجة قابلة للإصلاح التلقائي دلوقتي.");return}
+  if(!commitStorage({[K.r]:requests,[K.p]:parts}))return;
+  alert(`تم تصحيح ${fixed} قيمة. الملاحظات المتبقية (لو فيه) محتاجة مراجعة يدوية.`);
+  runDataIntegrityCheck();renderRequests();renderParts();
 }
 
 // أمر شغل سريع من الرئيسية: عميل + جهاز + عطل، والباقي يتظبط من صفحة الأمر نفسها.
