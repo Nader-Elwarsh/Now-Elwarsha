@@ -351,7 +351,7 @@
         const remain = customerRemainingTotal(c.id);
         const age = worstRequestAgeInfo(ao);
         return `<div class="simple-record${age ? " " + age.cls : ""}"><div class="simple-record-icon">👤</div><div class="simple-record-main">
-          <a href="customer.html?id=${c.id}"><b>${esc2(c.name)}</b></a><span>📞 ${esc2(c.phone || "—")}</span>
+          <a href="customer.html?id=${c.id}"><b>${esc2(c.name)}</b></a><span>${c.phone?`<a class="tel-link" href="tel:${esc2(c.phone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📞 ${esc2(c.phone)}</a>`:"📞 —"}</span>
           <small>📍 ${esc2(addressText(c.mainAddress || {}) || "بدون عنوان")}</small>
           <small>🔧 ${ds} أجهزة • 🛠️ ${rs} أوامر${ao.length ? ` • 🔴 ${ao.length} فعال` : ""}${hw ? " • 🏭 جهاز في الورشة" : ""}</small>
           <small>${lastDate ? `📅 آخر تعامل: ${lastDate.toLocaleDateString("ar-EG",{day:"2-digit",month:"2-digit",year:"2-digit"})}` : "📅 بدون تعامل سابق"}${remain > 0 ? ` • 💰 متبقي ${remain.toFixed(2)} ج` : ""}${age ? ` • <span class="age-badge ${age.cls}" title="⏱️ أقدم أمر مفتوح: ${esc2(age.range)}">${age.dot} ${esc2(age.label)}</span>` : ""}</small>
@@ -446,7 +446,7 @@
         const ao = activeOrdersForDevice(d.id); const age = worstRequestAgeInfo(ao);
         const cust = arr(K.c).find(x => x.id === d.customerId) || {};
         const latest = ao.length ? ao.slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0))[0] : null;
-        return `<div class="simple-record${age ? " " + age.cls : ""}"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}${cust.phone ? ` • 📞 ${esc2(cust.phone)}` : ""}</small><small>${ao.length ? `🔴 ${ao.length} أمر فعال${latest ? ` (${esc2(latest.status)}${latest.fault ? ` — ${esc2(latest.fault)}` : ""})` : ""}` : "لا يوجد أمر فعال"}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}${age ? ` • <span class="age-badge ${age.cls}" title="⏱️ أقدم أمر مفتوح: ${esc2(age.range)}">${age.dot} ${esc2(age.label)}</span>` : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`;
+        return `<div class="simple-record${age ? " " + age.cls : ""}"><div class="simple-record-icon">🔧</div><div class="simple-record-main"><a href="device.html?id=${d.id}"><b>${esc2(d.type)} — ${esc2(d.brand)}</b></a><span>${esc2(d.category||"—")} • ${esc2(d.model||"بدون موديل")}</span><small>👤 ${esc2(customerName(d.customerId))}</small>${cust.phone ? `<small>${`<a class="tel-link" href="tel:${esc2(cust.phone)}" target="_blank" rel="noopener">📞 ${esc2(cust.phone)}</a>`}</small>` : ""}<small>${ao.length ? `🔴 ${ao.length} أمر فعال${latest ? ` (${esc2(latest.status)}${latest.fault ? ` — ${esc2(latest.fault)}` : ""})` : ""}` : "لا يوجد أمر فعال"}${hasWorkshopDevice(d.id) ? " • 🏭 في الورشة" : ""}${age ? ` • <span class="age-badge ${age.cls}" title="⏱️ أقدم أمر مفتوح: ${esc2(age.range)}">${age.dot} ${esc2(age.label)}</span>` : ""}</small></div><div class="simple-record-actions"><a class="secondary small-btn" href="device.html?id=${d.id}">فتح</a><button class="danger-btn small-btn" onclick="deleteDeviceRecord('${d.id}')">حذف</button></div></div>`;
       }).join("") : `<div class="item">لا توجد نتائج.</div>`}`;
   });
 
@@ -860,7 +860,8 @@
           <div class="simple-record-icon">${r.closed ? "🔒" : "🛠️"}</div>
           <div class="simple-record-main">
             <a href="request.html?id=${r.id}"><b>${esc2(r.no || "أمر شغل")}</b></a>
-            <span>${esc2(customerName(r.customerId))}${cust.phone ? ` • 📞 ${esc2(cust.phone)}` : ""} • ${esc2(deviceName(r.deviceId))}</span>
+            <span>${esc2(customerName(r.customerId))} • ${esc2(deviceName(r.deviceId))}</span>
+            ${cust.phone ? `<small><a class="tel-link" href="tel:${esc2(cust.phone)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📞 ${esc2(cust.phone)}</a></small>` : ""}
             <small>📍 ${esc2(loc.center)}${loc.village ? " • " + esc2(loc.village) : ""} • ${r.visit ? new Date(r.visit).toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "بدون موعد"}${r.tag ? " • 🏷️ " + esc2(r.tag) : ""}</small>
             ${r.fault ? `<small>📝 ${esc2(r.fault)}</small>` : ""}
             <div class="request-timing">
@@ -870,7 +871,7 @@
             </div>
           </div>
           <div class="simple-record-side">
-            ${canEditStatus ? `<select class="inline-status" onclick="event.stopPropagation()" onchange="changeRequestStatus('${r.id}',this.value)">${nextStatusOptions(r.status).map(x=>`<option ${r.status===x?"selected":""}>${esc2(x)}</option>`).join("")}</select>` : `<span class="simple-status ${r.closed ? "closed" : ""}">${esc2(status)}</span>`}
+            ${canEditStatus ? `<select class="simple-status-select" onclick="event.stopPropagation()" onchange="changeRequestStatus('${r.id}',this.value)">${nextStatusOptions(r.status).map(x=>`<option ${r.status===x?"selected":""}>${esc2(x)}</option>`).join("")}</select>` : `<span class="simple-status ${r.closed ? "closed" : ""}">${esc2(status)}</span>`}
             ${canReturnRequest(r) ? `<button type="button" class="secondary mini-action return-btn" onclick="markRequestReturned('${r.id}')">🔄 مرتجع${r.closed ? ` (${Math.max(0,returnWindowDaysLeft(r))}ي)` : ""}</button>` : ""}
             <b>${(+r.total||0).toFixed(2)} ج</b>
             ${(+r.deposit||0) > 0 ? `<small class="deposit-chip">💵 عربون ${(+r.deposit).toFixed(2)} ج</small>` : ""}

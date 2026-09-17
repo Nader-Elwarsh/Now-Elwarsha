@@ -13,7 +13,7 @@ function renderPendingCalls(){
     let combined=[x.title,x.text,x.url].filter(Boolean).join(" — ");
     let when=x.at?new Date(x.at).toLocaleString("ar-EG"):"";
     return `<div class="item" data-pc-id="${esc(x.id)}">
-      <div class="kv"><b>📞 ${x.phone?esc(x.phone):"مكالمة"}</b><small>${esc(when)}</small></div>
+      <div class="kv"><b>${x.phone?`<a class="tel-link" href="tel:${esc(x.phone)}" target="_blank" rel="noopener">📞 ${esc(x.phone)}</a>`:"📞 مكالمة"}</b><small>${esc(when)}</small></div>
       ${combined?`<div class="hint">${esc(combined)}</div>`:""}
       ${x.fileName?`<div class="hint">🎙️ ${esc(x.fileName)}</div>`:""}
       <div class="actions">

@@ -8,7 +8,6 @@
     'add-part-category':()=>window.addPartCategory?.(),
     'backup':()=>window.backupAllData?.(),
     'integrity':()=>window.runDataIntegrityCheck?.(),
-    'integrity-fix':()=>window.autoFixDataIntegrity?.(),
     'delete-customers':()=>window.deleteAllCustomers?.(),
     'delete-devices':()=>window.deleteAllDevices?.(),
     'delete-requests':()=>window.deleteAllRequests?.(),

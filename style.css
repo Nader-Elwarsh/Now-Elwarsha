@@ -291,6 +291,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .simple-record-side>b{font-size:12px}
 .simple-status{display:inline-block;background:var(--bg-sunken);color:var(--text-muted);border-radius:14px;padding:4px 7px;font-size:10px;white-space:nowrap}
 .simple-status.closed{background:#e5f5ec;color:#18794e}
+.simple-status-select{display:inline-block;background:var(--bg-sunken);color:var(--text);border:1px solid var(--border);border-radius:14px;padding:3px 18px 3px 6px;font-size:10px;font-family:inherit;white-space:nowrap;max-width:110px;cursor:pointer}
 .deposit-chip{color:var(--warn-text);font-size:10px;white-space:nowrap}
 .simple-qty{min-width:34px;text-align:center;font-weight:bold;font-size:13px}
 .simple-qty.low{color:var(--danger-text)}
@@ -311,6 +312,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .simple-record-side{gap:2px}
   .simple-record-side>b{font-size:10px}
   .simple-status{font-size:9px;padding:3px 6px}
+  .simple-status-select{font-size:9px;padding:3px 14px 3px 5px;max-width:92px}
 }
 
 /* ===== قطعة غيار خارج المخزن ===== */
@@ -610,3 +612,14 @@ input,select,textarea{min-height:40px;box-sizing:border-box}
 .img-preview-box{background:var(--bg-elevated);border-radius:12px;padding:10px;max-width:min(92vw,720px);max-height:92vh;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-card-strong)}
 .img-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--text)}
 .img-preview-box img{max-width:100%;max-height:78vh;border-radius:8px;object-fit:contain}
+
+/* قائمة ملاحظات فحص سلامة البيانات: كل بند مع رابط فتح السجل وزرار إصلاح لو موجود */
+.integrity-list{list-style:none;margin:8px 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.integrity-list li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.integrity-list li>span:first-child{flex:1 1 220px}
+
+/* فواتير المخزن: قائمة اختيار الأصناف المرتبطة + صفوف عرض الفواتير */
+.inv-part-options{max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:4px;margin-top:6px;background:var(--bg-sunken)}
+.inv-part-check{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:normal}
+.invoice-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.invoice-meta{display:flex;flex-direction:column;gap:2px;flex:1 1 160px}
