@@ -5,6 +5,7 @@
 <div class="hint">صوّر فاتورة التوريد وارجع اربطها بصنف أو أكتر — تقدر تلاقيها بعدين من صفحة الصنف نفسه من غير ما تدور في كل الفواتير.</div>
 <div id="invoiceForm" class="form-grid">
 <label class="wide">📷 صورة الفاتورة<div class="dual-photo-picker" data-target="invPhoto"><button type="button" class="secondary small-btn dual-photo-btn" data-mode="camera">📷 كاميرا</button><button type="button" class="secondary small-btn dual-photo-btn" data-mode="gallery">🖼️ من الصور</button><span class="dual-photo-filename">لم يتم اختيار ملف</span></div><input id="invPhoto" type="file" accept="image/*" class="hidden"></label>
+<div id="invPhotoPreview" class="wide"></div>
 <label class="wide">ملاحظة <small>اختياري، مثلًا اسم المورد أو التاريخ</small><input id="invNote"></label>
 <label class="wide">ربط بالأصناف <small>اختياري، تقدر تحددها بعدين لو مش متأكد دلوقتي</small>
 <input type="text" id="invPartFilter" placeholder="🔍 دوّر على اسم الصنف عشان تفلتر القائمة..." autocomplete="off" oninput="filterInvoicePartOptions()">
