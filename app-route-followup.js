@@ -334,6 +334,8 @@ function confirmQuickClose(i){
   const labor=+(document.getElementById(`qcLabor-${i}`)?.value||0);
   if(!Number.isFinite(labor)||labor<0){alert("اكتب قيمة مصنعية صحيحة.");return}
   const wallet=document.getElementById(`qcWallet-${i}`)?.value||"";
+  const collectedPreview=Math.max(0,(+r.partsTotal||0)+labor-(+r.deposit||0));
+  if(collectedPreview>0&&!wallet&&!confirm(`مفيش محفظة محددة للمبلغ المتبقي المُحصّل (${collectedPreview.toFixed(2)} ج)، فمش هتتسجل كحركة في الحسابات.\n\nمتابعة القفل من غير تسجيله في محفظة؟`))return;
   if(!confirm("تأكيد إن الزيارة خلصت، الأمر مكتمل، واستلام كامل قيمته وإغلاقه نهائيًا؟ بعد التأكيد لن يمكن التعديل."))return;
   r.labor=labor;
   r.partsTotal=+r.partsTotal||0;
