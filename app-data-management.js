@@ -9,6 +9,24 @@ function lastBackupInfoText(){let days=daysSinceLastBackup();if(days===null)retu
 function renderBackupInfo(){let el=document.getElementById("lastBackupInfo");if(el)el.textContent=lastBackupInfoText()}
 document.addEventListener("DOMContentLoaded",renderBackupInfo);
 
+/* تنبيه استباقي لو مساحة التخزين المتاحة للمتصفح (localStorage +
+   IndexedDB للصور) قربت تخلص، قبل ما الحفظ يفشل فعليًا فجأة من غير سابق
+   إنذار. navigator.storage.estimate() غير مدعوم من كل المتصفحات القديمة،
+   فلو غير متاح بنسيب المكان فاضي من غير ما نخترع نسبة غلط. */
+async function renderStorageUsageInfo(){
+  const el=document.getElementById("storageUsageInfo");if(!el)return;
+  if(!navigator.storage?.estimate){el.textContent="";return}
+  try{
+    const {usage,quota}=await navigator.storage.estimate();
+    if(!Number.isFinite(usage)||!Number.isFinite(quota)||quota<=0){el.textContent="";return}
+    const pct=Math.round((usage/quota)*100),mb=n=>(n/1048576).toFixed(1);
+    const warn=pct>=80;
+    el.innerHTML=`${warn?"⚠️":"📦"} مساحة التخزين المستخدمة: ${mb(usage)} ميجا من ${mb(quota)} ميجا تقريبًا (${pct}%)${warn?" — قربت تخلص، يفضّل حذف صور/بيانات قديمة مش محتاجاها أو التصدير والاسترجاع على جهاز/متصفح بمساحة أكبر.":""}`;
+    el.className=warn?"hint negative":"hint";
+  }catch(e){el.textContent=""}
+}
+document.addEventListener("DOMContentLoaded",renderStorageUsageInfo);
+
 async function snapshotAllData(){
   const data={};Object.values(K).forEach(k=>{data[k]=get(k,k===K.s?null:[])});
   data.wf_notif_enabled=localStorage.getItem("wf_notif_enabled");
