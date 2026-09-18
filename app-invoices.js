@@ -36,7 +36,7 @@ function invoiceFormReset() {
 // بدل ما تحتاجي تحفظي وتضغطي "عرض" الأول عشان تشوفيها.
 async function showInvoicePhotoPreview(dataURL) {
   const host = document.getElementById("invPhotoPreview"); if (!host) return;
-  host.innerHTML = dataURL ? `<img class="invoice-photo-live-preview" src="${dataURL}" onclick="showImagePreview('${dataURL.replace(/'/g, "\\'")}','🧾 فاتورة مخزن')">` : "";
+  host.innerHTML = dataURL ? `<img class="invoice-photo-live-preview" src="${dataURL}" onclick="showImagePreview('${dataURL.replace(/'/g, "\\'")}','🧾 فاتورة مخزن')"><p class="invoice-photo-preview-hint">اضغطي على الصورة لتكبيرها والتقريب بإصبعين لقراءة التفاصيل</p>` : "";
 }
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("invPhoto")?.addEventListener("change", async (e) => {

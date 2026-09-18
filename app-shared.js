@@ -14,9 +14,50 @@ async function showImagePreview(ref,title){
   document.querySelectorAll(".img-preview-overlay").forEach(x=>x.remove());
   const ov=document.createElement("div");
   ov.className="img-preview-overlay";
-  ov.innerHTML=`<div class="img-preview-box"><div class="img-preview-head"><b>${esc(title||"عرض الصورة")}</b><button type="button" class="secondary mini-action" onclick="this.closest('.img-preview-overlay').remove()">✖ إغلاق</button></div><img src="${src}"></div>`;
+  ov.innerHTML=`<div class="img-preview-box"><div class="img-preview-head"><b>${esc(title||"عرض الصورة")}</b><button type="button" class="secondary mini-action" onclick="this.closest('.img-preview-overlay').remove()">✖ إغلاق</button></div><img src="${src}"><p class="img-preview-zoom-hint">🤏 قرّبي بإصبعين أو دبل تاب للتكبير</p></div>`;
   ov.onclick=e=>{if(e.target===ov)ov.remove()};
   document.body.appendChild(ov);
+  const img=ov.querySelector(".img-preview-box img");
+  if(img&&typeof enablePinchZoomPan==="function")enablePinchZoomPan(img);
+}
+/* ---------------------------------------------------------------------
+   تقريب وتحريك صورة بإصبعين (Pinch-to-zoom) داخل عارض الصور، بدون ما
+   يكبّر الصفحة كلها زي ما بيحصل مع تقريب المتصفح العادي — التقريب بيتم
+   بس على الصورة نفسها (transform: scale/translate)، وعند إبعاد
+   الإصبعين تحت الحجم الطبيعي بيرجع تلقائيًا لوضعه الأصلي. دبل تاب على
+   الصورة بيقرّب/يرجّع بسرعة كمان.
+   --------------------------------------------------------------------- */
+function enablePinchZoomPan(img){
+  let scale=1,startScale=1,panX=0,panY=0,startPanX=0,startPanY=0,pinchStartDist=0,lastTapAt=0;
+  function apply(withTransition){
+    img.style.transition=withTransition?"transform .15s":"none";
+    img.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;
+  }
+  function reset(){scale=1;panX=0;panY=0;apply(true)}
+  img.addEventListener("touchstart",e=>{
+    if(e.touches.length===2){
+      const [a,b]=e.touches;
+      pinchStartDist=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY)||1;
+      startScale=scale;
+    } else if(e.touches.length===1&&scale>1){
+      startPanX=e.touches[0].clientX-panX;startPanY=e.touches[0].clientY-panY;
+    }
+  },{passive:true});
+  img.addEventListener("touchmove",e=>{
+    if(e.touches.length===2){
+      e.preventDefault();
+      const [a,b]=e.touches;
+      const dist=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
+      scale=Math.min(4,Math.max(1,startScale*(dist/pinchStartDist)));
+      apply(false);
+    } else if(e.touches.length===1&&scale>1){
+      e.preventDefault();
+      panX=e.touches[0].clientX-startPanX;panY=e.touches[0].clientY-startPanY;
+      apply(false);
+    }
+  },{passive:false});
+  img.addEventListener("touchend",()=>{ if(scale<=1)reset(); });
+  img.addEventListener("dblclick",()=>{ if(scale>1)reset(); else {scale=2.2;apply(true)} });
 }
 function localDateKey(date){return dayKeyLocal(date)}
 function monthKeyLocal(value){let d=new Date(value);if(Number.isNaN(d.getTime()))return"";return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
