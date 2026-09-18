@@ -243,8 +243,11 @@ function markPaidAndClose(i){
   if(r.status!=="مكتمل"){alert("اجعل حالة أمر الشغل «مكتمل» أولًا.");return}
   if(!confirm("تأكيد استلام كامل قيمة الأمر وإغلاقه نهائيًا؟ بعد التأكيد لن يمكن التعديل."))return;
   let wallet=document.getElementById("rCloseWallet")?.value||"";
-  let now=new Date().toISOString();
   let collected=Math.max(0,(+r.total||0)-(+r.deposit||0));
+  if(collected>0&&!wallet){
+    if(!confirm(`لم تحدد محفظة للمبلغ المتبقي المُحصّل (${collected.toFixed(2)} ج).\n\nهيتقفل أمر الشغل ويتسجل «مدفوع بالكامل»، لكن المبلغ ده مش هيتسجل كحركة في أي محفظة ولا هيتحسب ضمن أرصدتك.\n\nمتابعة الإغلاق من غير تسجيله في محفظة؟`))return;
+  }
+  let now=new Date().toISOString();
   r.paid=true;
   r.remain=0;
   r.paidAt=now;
