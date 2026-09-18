@@ -25,6 +25,7 @@
 <label>سعر الشراء الجديد <small>اختياري لو اتغير</small><input id="stkBuy" type="number" min="0" step=".01"></label>
 <label class="wide">ملاحظة <small>اختياري، مثلًا اسم المورد</small><input id="stkNote"></label>
 <label class="wide">📷 صورة فاتورة التوريد <small>اختياري، للرجوع إليها لاحقًا</small><div class="dual-photo-picker" data-target="stkInvoice"><button type="button" class="secondary small-btn dual-photo-btn" data-mode="camera">📷 كاميرا</button><button type="button" class="secondary small-btn dual-photo-btn" data-mode="gallery">🖼️ من الصور</button><span class="dual-photo-filename">لم يتم اختيار ملف</span></div><input id="stkInvoice" type="file" accept="image/*" class="hidden"></label>
+<div id="stkInvoicePreview" class="wide"></div>
 </div>
 <div id="stkCurrentHint" class="hint">اكتب اسم القطعة أو الكود، أو اسم صنف جديد عشان تضيفه.</div>
 <div class="actions"><button type="button" class="primary" onclick="saveRestock()">💾 تسجيل التوريد</button><button type="button" class="secondary" onclick="toggleRestockBox()">إلغاء</button></div>

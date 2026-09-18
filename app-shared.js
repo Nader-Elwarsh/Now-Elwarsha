@@ -59,6 +59,21 @@ function enablePinchZoomPan(img){
   img.addEventListener("touchend",()=>{ if(scale<=1)reset(); });
   img.addEventListener("dblclick",()=>{ if(scale>1)reset(); else {scale=2.2;apply(true)} });
 }
+/* ---------------------------------------------------------------------
+   معاينة صورة كبيرة وفورية بعد اختيارها (فاتورة/صورة قطعة/صورة جهاز)،
+   مستخدمة في أي حقل رفع صورة في التطبيق: بتاخد حجم قريب من الشاشة (زي
+   معرض الصور) وبتدعم التقريب والتحريك بإصبعين في مكانها هي نفسها (شوف
+   enablePinchZoomPan فوق) بدل ما تحتاج المستخدمة تدخل لعارض منفصل.
+   hostId: id العنصر (div فاضي) اللي هتتحط الصورة جواه. dataURL: فاضي
+   يعني نمسح المعاينة (زي وقت إلغاء اختيار الصورة).
+   --------------------------------------------------------------------- */
+function renderLivePhotoPreview(hostId, dataURL) {
+  const host = document.getElementById(hostId); if (!host) return;
+  if (!dataURL) { host.innerHTML = ""; return; }
+  host.innerHTML = `<img class="live-photo-preview" src="${dataURL}"><p class="live-photo-preview-hint">🤏 قرّبي بإصبعين أو دبل تاب على الصورة نفسها للتكبير والتحرك فيها في مكانها</p>`;
+  const img = host.querySelector(".live-photo-preview");
+  if (img) enablePinchZoomPan(img);
+}
 function localDateKey(date){return dayKeyLocal(date)}
 function monthKeyLocal(value){let d=new Date(value);if(Number.isNaN(d.getTime()))return"";return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`}
 function orderNo(date=new Date()){let y=String(date.getFullYear()).slice(-2),m=date.getMonth()+1,d=date.getDate(),prefix=`W${y}-${m}-${d}-`,ymd=localDateKey(date);let n=arr(K.r).filter(x=>x.createdAt&&localDateKey(new Date(x.createdAt))===ymd).length+1;while(arr(K.r).some(x=>x.no===prefix+n))n++;return prefix+n}

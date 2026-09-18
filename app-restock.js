@@ -107,10 +107,19 @@ function toggleRestockBox() {
     document.getElementById("stkBuy").value = "";
     document.getElementById("stkNote").value = "";
     document.getElementById("stkInvoice").value = ""; refreshDualPhotoName("stkInvoice");
+    renderLivePhotoPreview("stkInvoicePreview", "");
     document.getElementById("stkCurrentHint").textContent = "اكتب اسم القطعة أو الكود، أو اسم صنف جديد عشان تضيفه.";
     document.getElementById("stkPartSearch")?.focus();
   }
 }
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("stkInvoice")?.addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) { renderLivePhotoPreview("stkInvoicePreview", ""); return; }
+    const dataURL = await imageToDataURL(f, 1400, 0.8);
+    renderLivePhotoPreview("stkInvoicePreview", dataURL);
+  });
+});
 
 function filterRestockPartOptions(q) {
   const box = document.getElementById("stkPartResults");

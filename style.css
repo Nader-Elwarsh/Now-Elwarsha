@@ -644,5 +644,11 @@ input,select,textarea{min-height:40px;box-sizing:border-box}
    وبتدعم التقريب والتحريك بإصبعين في مكانها هي نفسها (enablePinchZoomPan
    في app-shared.js) من غير ما تحتاجي تدخلي لعارض منفصل. position:relative
    ضروري عشان z-index يشتغل ويخلّيها تظهر فوق باقي الفورم وقت التقريب. */
-.invoice-photo-live-preview{display:block;position:relative;z-index:2;width:100%;max-height:75vh;margin:4px auto 0;border-radius:10px;border:1px solid var(--border);object-fit:contain;touch-action:none;background:var(--bg-sunken)}
-.invoice-photo-preview-hint{font-size:11px;color:var(--text-muted);text-align:center;margin:2px 0 0}
+/* معاينة صورة كبيرة فور اختيارها (فاتورة، صورة قطعة، صورة جهاز...): بحجم
+   قريب من عرضها في معرض الصور العادي (تاخد عرض الفورم بالكامل وترتفع لحد
+   معظم ارتفاع الشاشة)، وبتدعم التقريب والتحريك بإصبعين في مكانها هي
+   نفسها (enablePinchZoomPan) من غير ما تحتاجي تدخلي لعارض منفصل.
+   position:relative ضروري عشان z-index يشتغل ويخلّيها تظهر فوق باقي
+   الفورم وقت التقريب. */
+.live-photo-preview{display:block;position:relative;z-index:2;width:100%;max-height:75vh;margin:4px auto 0;border-radius:10px;border:1px solid var(--border);object-fit:contain;touch-action:none;background:var(--bg-sunken)}
+.live-photo-preview-hint{font-size:11px;color:var(--text-muted);text-align:center;margin:2px 0 0}

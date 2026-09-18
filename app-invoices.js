@@ -12,8 +12,15 @@ function invoicePartOptionsHtml(filter) {
   filter = (filter || "").trim();
   const parts = arr(K.p).filter(p => !p.archived);
   const list = filter ? parts.filter(p => (p.name || "").includes(filter) || (p.code || "").includes(filter)) : parts;
-  if (!list.length) return `<div class="hint">لا توجد أصناف مطابقة.</div>`;
-  return list.slice(0, 80).map(p => `<label class="inv-part-check"><input type="checkbox" value="${p.id}" class="inv-part-cb"> ${esc(p.name)}${p.code ? ` <small>(${esc(p.code)})</small>` : ""}</label>`).join("");
+  let html = list.length ? list.slice(0, 80).map(p => `<label class="inv-part-check"><input type="checkbox" value="${p.id}" class="inv-part-cb"> ${esc(p.name)}${p.code ? ` <small>(${esc(p.code)})</small>` : ""}</label>`).join("") : `<div class="hint">لا توجد أصناف مطابقة.</div>`;
+  // لو الاسم المكتوب في البحث مش موجود بالظبط في المخزن، نسيب خيار
+  // إضافته كصنف جديد مباشرة (بنفس نافذة "إضافة قطعة جديدة" المشتركة
+  // المستخدمة في التوريد)، عشان تقدري تسجّليه وتكتبي تفاصيله من الفاتورة
+  // نفسها من غير ما تخرجي من هنا وتدخلي لشاشة تانية.
+  if (filter && !parts.some(p => (p.name || "").trim().toLowerCase() === filter.toLowerCase())) {
+    html += `<button type="button" class="secondary small-btn inv-add-new-part" data-newpart="${esc(filter)}">➕ "${esc(filter)}" صنف جديد — إضافته للمخزن</button>`;
+  }
+  return html;
 }
 function filterInvoicePartOptions() {
   const host = document.getElementById("invPartOptions"); if (!host) return;
@@ -21,6 +28,20 @@ function filterInvoicePartOptions() {
   const checked = new Set(Array.from(host.querySelectorAll(".inv-part-cb:checked")).map(x => x.value));
   host.innerHTML = invoicePartOptionsHtml(q);
   host.querySelectorAll(".inv-part-cb").forEach(cb => { if (checked.has(cb.value)) cb.checked = true; });
+  host.querySelectorAll(".inv-add-new-part").forEach(btn => {
+    btn.onclick = () => {
+      const typedName = btn.dataset.newpart;
+      openQuickAddPart(typedName, {
+        onCreated: (p) => {
+          const filterEl = document.getElementById("invPartFilter"); if (filterEl) filterEl.value = "";
+          filterInvoicePartOptions();
+          const cb = document.querySelector(`#invPartOptions .inv-part-cb[value="${p.id}"]`);
+          if (cb) cb.checked = true;
+          document.getElementById("invoiceForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    };
+  });
 }
 function invoiceFormReset() {
   _editingInvoiceId = null;
@@ -35,11 +56,7 @@ function invoiceFormReset() {
 // ظاهرة وواضحة على الصفحة نفسها جنب قائمة اختيار الأصناف المرتبطة بيها —
 // بدل ما تحتاجي تحفظي وتضغطي "عرض" الأول عشان تشوفيها.
 async function showInvoicePhotoPreview(dataURL) {
-  const host = document.getElementById("invPhotoPreview"); if (!host) return;
-  if (!dataURL) { host.innerHTML = ""; return; }
-  host.innerHTML = `<img class="invoice-photo-live-preview" src="${dataURL}"><p class="invoice-photo-preview-hint">🤏 قرّبي بإصبعين أو دبل تاب على الصورة نفسها للتكبير والتحرك فيها في مكانها</p>`;
-  const img = host.querySelector(".invoice-photo-live-preview");
-  if (img && typeof enablePinchZoomPan === "function") enablePinchZoomPan(img);
+  renderLivePhotoPreview("invPhotoPreview", dataURL);
 }
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("invPhoto")?.addEventListener("change", async (e) => {
