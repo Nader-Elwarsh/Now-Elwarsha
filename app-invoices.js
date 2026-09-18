@@ -36,7 +36,10 @@ function invoiceFormReset() {
 // بدل ما تحتاجي تحفظي وتضغطي "عرض" الأول عشان تشوفيها.
 async function showInvoicePhotoPreview(dataURL) {
   const host = document.getElementById("invPhotoPreview"); if (!host) return;
-  host.innerHTML = dataURL ? `<img class="invoice-photo-live-preview" src="${dataURL}" onclick="showImagePreview('${dataURL.replace(/'/g, "\\'")}','🧾 فاتورة مخزن')"><p class="invoice-photo-preview-hint">اضغطي على الصورة لتكبيرها والتقريب بإصبعين لقراءة التفاصيل</p>` : "";
+  if (!dataURL) { host.innerHTML = ""; return; }
+  host.innerHTML = `<img class="invoice-photo-live-preview" src="${dataURL}"><p class="invoice-photo-preview-hint">🤏 قرّبي بإصبعين أو دبل تاب على الصورة نفسها للتكبير والتحرك فيها في مكانها</p>`;
+  const img = host.querySelector(".invoice-photo-live-preview");
+  if (img && typeof enablePinchZoomPan === "function") enablePinchZoomPan(img);
 }
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("invPhoto")?.addEventListener("change", async (e) => {
