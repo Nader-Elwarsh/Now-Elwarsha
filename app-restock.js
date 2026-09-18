@@ -15,37 +15,47 @@
 
 let _qapCtx = null;
 
-function _ensureQuickAddPartBox() {
+/* anchorEl (اختياري): عنصر في الصفحة نحط النافذة بعده مباشرة، عشان تفضل
+   ظاهرة في نفس السياق اللي انتي شغالة فيه (تحت مربع البحث اللي كتبتي فيه
+   الاسم) بدل ما تظهر تحت في نهاية الصفحة وتحتاجي تسكرولي لتحت كل مرة.
+   بندوّر كمان على أقرب "صف" كامل (label أو part-add) نحط النافذة بعده،
+   بدل ما نحطها جوه صف الـgrid نفسه (زي مربع البحث) وتكسر ترتيب أعمدته. */
+function _ensureQuickAddPartBox(anchorEl) {
   let box = document.getElementById("quickAddPartBox");
-  if (box) return box;
-  box = document.createElement("section");
-  box.id = "quickAddPartBox";
-  box.className = "quick-add hidden wide";
-  box.innerHTML = `
-    <h3>➕ إضافة قطعة جديدة للمخزن</h3>
-    <div class="form-grid">
-      <label class="wide">اسم القطعة<input id="qapName"></label>
-      <label>التصنيف<div class="part-autocomplete"><input type="text" id="qapCategorySearch" class="part-autocomplete-input" placeholder="🔍 اكتب اسم التصنيف..." autocomplete="off" oninput="filterListOptions('qapCategory', this.value)" onfocus="filterListOptions('qapCategory', this.value)" onblur="hideListResults('qapCategory')"><input type="hidden" id="qapCategory"><div id="qapCategoryResults" class="part-autocomplete-results hidden"></div></div></label>
-      <label>الكود <small>اختياري</small><input id="qapCode"></label>
-      <label>الكمية الأولى<input id="qapQty" type="number" min="0" value="1"></label>
-      <label>سعر الشراء<input id="qapBuy" type="number" min="0" step=".01" value="0"></label>
-      <label>سعر الاستخدام<input id="qapUse" type="number" min="0" step=".01" value="0"></label>
-    </div>
-    <div class="actions">
-      <button type="button" class="primary" onclick="saveQuickAddPart()">💾 حفظ القطعة</button>
-      <button type="button" class="secondary" onclick="closeQuickAddPart()">إلغاء</button>
-    </div>`;
-  document.body.appendChild(box);
+  if (!box) {
+    box = document.createElement("section");
+    box.id = "quickAddPartBox";
+    box.className = "quick-add hidden wide";
+    box.innerHTML = `
+      <h3>➕ إضافة قطعة جديدة للمخزن</h3>
+      <div class="form-grid">
+        <label class="wide">اسم القطعة<input id="qapName"></label>
+        <label>التصنيف<div class="part-autocomplete"><input type="text" id="qapCategorySearch" class="part-autocomplete-input" placeholder="🔍 اكتب اسم التصنيف..." autocomplete="off" oninput="filterListOptions('qapCategory', this.value)" onfocus="filterListOptions('qapCategory', this.value)" onblur="hideListResults('qapCategory')"><input type="hidden" id="qapCategory"><div id="qapCategoryResults" class="part-autocomplete-results hidden"></div></div></label>
+        <label>الكود <small>اختياري</small><input id="qapCode"></label>
+        <label>الكمية الأولى<input id="qapQty" type="number" min="0" value="1"></label>
+        <label>سعر الشراء<input id="qapBuy" type="number" min="0" step=".01" value="0"></label>
+        <label>سعر الاستخدام<input id="qapUse" type="number" min="0" step=".01" value="0"></label>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" onclick="saveQuickAddPart()">💾 حفظ القطعة</button>
+        <button type="button" class="secondary" onclick="closeQuickAddPart()">إلغاء</button>
+      </div>`;
+  }
+  const rowAnchor = anchorEl ? (anchorEl.closest(".part-add, label") || anchorEl) : null;
+  if (rowAnchor) rowAnchor.insertAdjacentElement("afterend", box);
+  else if (!box.parentNode) document.body.appendChild(box);
   return box;
 }
 
 /* name: الاسم المكتوب في مربع البحث اللي فتح منه المستخدم الإضافة (بيتحط
    كقيمة مبدئية قابلة للتعديل). ctx.onCreated(part): بيتنفّذ بعد الحفظ عشان
    الشاشة اللي فتحت النافذة تختار الصنف الجديد تلقائيًا (زي أي quick-add تاني
-   في النظام). ctx.defaultQty: كمية مبدئية مقترحة (مثلاً لو جاي من شاشة توريد). */
+   في النظام). ctx.defaultQty: كمية مبدئية مقترحة (مثلاً لو جاي من شاشة توريد).
+   ctx.anchor: id عنصر في الصفحة نحط النافذة بعده مباشرة (شوف _ensureQuickAddPartBox). */
 function openQuickAddPart(name, ctx = {}) {
   _qapCtx = ctx;
-  const box = _ensureQuickAddPartBox();
+  const anchorEl = ctx.anchor ? document.getElementById(ctx.anchor) : null;
+  const box = _ensureQuickAddPartBox(anchorEl);
   document.getElementById("qapName").value = (name || "").trim();
   fillListSearch("qapCategory", "partCat", "");
   document.getElementById("qapCode").value = "";
@@ -53,7 +63,7 @@ function openQuickAddPart(name, ctx = {}) {
   document.getElementById("qapBuy").value = "";
   document.getElementById("qapUse").value = "";
   box.classList.remove("hidden");
-  box.scrollIntoView({ behavior: "smooth", block: "center" });
+  box.scrollIntoView({ behavior: "smooth", block: anchorEl ? "nearest" : "center" });
   document.getElementById("qapName")?.focus();
 }
 
@@ -146,6 +156,7 @@ function filterRestockPartOptions(q) {
       const qty = +(document.getElementById("stkQty")?.value || 1);
       box.classList.add("hidden");
       openQuickAddPart(typedName, {
+        anchor: "stkPartResults",
         defaultQty: Number.isFinite(qty) && qty > 0 ? qty : 1,
         onCreated: (p) => {
           toggleRestockBox();

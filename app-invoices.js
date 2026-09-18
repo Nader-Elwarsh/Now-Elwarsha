@@ -32,12 +32,12 @@ function filterInvoicePartOptions() {
     btn.onclick = () => {
       const typedName = btn.dataset.newpart;
       openQuickAddPart(typedName, {
+        anchor: "invPartOptions",
         onCreated: (p) => {
           const filterEl = document.getElementById("invPartFilter"); if (filterEl) filterEl.value = "";
           filterInvoicePartOptions();
           const cb = document.querySelector(`#invPartOptions .inv-part-cb[value="${p.id}"]`);
-          if (cb) cb.checked = true;
-          document.getElementById("invoiceForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (cb) { cb.checked = true; cb.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
         }
       });
     };
@@ -91,6 +91,14 @@ async function saveInvoice() {
   if (_editingInvoiceId) {
     const inv = list.find(x => x.id === _editingInvoiceId);
     if (!inv) { invoiceFormReset(); renderInvoices(); return; }
+    // لو في أصناف كانت مربوطة بالفاتورة دي وبقت مش متحدّدة دلوقتي (يعني
+    // هتتشال من الربط)، ننبّه قبل الحفظ عشان تتأكدي إنه مقصود ومش بغلط.
+    const removedIds = (inv.partIds || []).filter(pid => !partIds.includes(pid));
+    if (removedIds.length) {
+      const removedNames = removedIds.map(pid => arr(K.p).find(p => p.id === pid)?.name).filter(Boolean);
+      const namesText = removedNames.length ? removedNames.join("، ") : `${removedIds.length} صنف`;
+      if (!confirm(`دا هيلغي ربط هذه الفاتورة بـ: ${namesText}.\nمتأكدة إنك عايزة تكمّلي الحفظ كده؟`)) return;
+    }
     if (file) {
       const dataURL = await imageToDataURL(file, 1400, 0.72);
       inv.photo = window.ImageStore ? await window.ImageStore.save(dataURL, inv.photo) : dataURL;
@@ -150,15 +158,57 @@ function renderInvoices() {
   }).join("");
   resolveInvoiceThumbs(host);
 }
-/* يستخدم من صفحة الصنف نفسه لعرض الفواتير المرتبطة بيه فقط */
+/* يستخدم من صفحة الصنف نفسه: بيعرض الفواتير المرتبطة بيه فعلًا (مع زرار
+   إلغاء ربط لكل واحدة، بتأكيد قبل التنفيذ)، وتحته قسم قابل للفتح لربط
+   الصنف بفاتورة تانية موجودة (تقدري تربطيه بأكتر من فاتورة من غير حدود). */
 function partLinkedInvoicesHtml(partId) {
-  const list = arr(K.inv).filter(inv => (inv.partIds || []).includes(partId));
-  if (!list.length) return "";
-  return `<h2>🧾 فواتير مرتبطة بهذا الصنف</h2><div class="invoice-list">${list.slice().reverse().map(inv => `
+  const linked = arr(K.inv).filter(inv => (inv.partIds || []).includes(partId)).slice().reverse();
+  const linkedRows = linked.length ? linked.map(inv => `
     <div class="item invoice-row">
       <img class="invoice-thumb" alt="🧾" data-photo-ref="${esc(inv.photo)}" onclick="showImagePreview('${esc(inv.photo)}','🧾 فاتورة مخزن')">
       <div class="invoice-meta"><small>${new Date(inv.at).toLocaleDateString("ar-EG")}${inv.note ? " • " + esc(inv.note) : ""}</small></div>
-      <a class="secondary mini-action" href="inventory.html">🧾 إدارة الفواتير</a>
-    </div>`).join("")}</div>`;
+      <button type="button" class="danger-btn mini-action" onclick="unlinkPartInvoice('${partId}','${inv.id}')">🗑️ إلغاء الربط</button>
+    </div>`).join("") : `<div class="hint">لا توجد فواتير مرتبطة بهذا الصنف حتى الآن.</div>`;
+  return `<h2>🧾 فواتير مرتبطة بهذا الصنف</h2>
+    <div class="invoice-list">${linkedRows}</div>
+    <button type="button" class="secondary small-btn" onclick="togglePartInvoiceLinker('${partId}')">➕ ربط بفاتورة موجودة</button>
+    <div id="partInvoiceLinker_${partId}" class="hidden" style="margin-top:8px">
+      <input type="text" placeholder="🔍 دوّر بالتاريخ أو الملاحظة..." oninput="renderPartInvoiceLinkOptions('${partId}', this.value)">
+      <div id="partInvoiceLinkOptions_${partId}" class="inv-part-options" style="margin-top:6px"></div>
+    </div>`;
+}
+function togglePartInvoiceLinker(partId) {
+  const box = document.getElementById(`partInvoiceLinker_${partId}`); if (!box) return;
+  box.classList.toggle("hidden");
+  if (!box.classList.contains("hidden")) renderPartInvoiceLinkOptions(partId, "");
+}
+function renderPartInvoiceLinkOptions(partId, filter) {
+  const host = document.getElementById(`partInvoiceLinkOptions_${partId}`); if (!host) return;
+  filter = (filter || "").trim();
+  const candidates = arr(K.inv).filter(inv => !(inv.partIds || []).includes(partId)).slice().reverse();
+  const filtered = filter ? candidates.filter(inv => (inv.note || "").includes(filter) || new Date(inv.at).toLocaleDateString("ar-EG").includes(filter)) : candidates;
+  host.innerHTML = filtered.length ? filtered.slice(0, 60).map(inv => `
+    <div class="item invoice-row">
+      <img class="invoice-thumb" alt="🧾" data-photo-ref="${esc(inv.photo)}" onclick="showImagePreview('${esc(inv.photo)}','🧾 فاتورة مخزن')">
+      <div class="invoice-meta"><small>${new Date(inv.at).toLocaleDateString("ar-EG")}${inv.note ? " • " + esc(inv.note) : ""}</small></div>
+      <button type="button" class="secondary mini-action" onclick="linkPartInvoice('${partId}','${inv.id}')">🔗 ربط</button>
+    </div>`).join("") : `<div class="hint">${filter ? "لا توجد فواتير مطابقة." : "كل الفواتير المسجّلة مرتبطة بالصنف ده فعلًا."}</div>`;
+  resolveInvoiceThumbs(host);
+}
+function linkPartInvoice(partId, invId) {
+  const list = arr(K.inv), inv = list.find(x => x.id === invId); if (!inv) return;
+  if (!(inv.partIds || []).includes(partId)) {
+    inv.partIds = [...(inv.partIds || []), partId];
+    if (!saveJSONSafe(K.inv, list)) return;
+  }
+  if (typeof partProfile === "function") partProfile();
+}
+function unlinkPartInvoice(partId, invId) {
+  const list = arr(K.inv), inv = list.find(x => x.id === invId); if (!inv) return;
+  const when = `${new Date(inv.at).toLocaleDateString("ar-EG")}${inv.note ? " — " + inv.note : ""}`;
+  if (!confirm(`هل أنت متأكدة من إلغاء ربط هذه الفاتورة (${when}) بهذا الصنف؟`)) return;
+  inv.partIds = (inv.partIds || []).filter(pid => pid !== partId);
+  if (!saveJSONSafe(K.inv, list)) return;
+  if (typeof partProfile === "function") partProfile();
 }
 document.addEventListener("DOMContentLoaded", () => { if (document.getElementById("invoicesList")) renderInvoices(); });
